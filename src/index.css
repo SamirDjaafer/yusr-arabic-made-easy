@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/amiri/400.css";
+@import "@fontsource/amiri/700.css";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/700.css";
+@import "@fontsource/cinzel/400.css";
+@import "@fontsource/cinzel/600.css";
+
+/* The app renders in a light, white-first Yusr Arabic theme. The `dark:`
+   variant is bound to a .dark class that is never set, so styling stays
+   deterministic regardless of the OS color scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-arabic: "Amiri", "Traditional Arabic", serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-caps: "Cinzel", Georgia, serif;
+
+  /* Yusr Arabic brand palette (yusr-arabic.com), arranged light-first:
+     white page, navy (#16203A) as the primary structural color, gold
+     (#D4AF52) as a restrained accent. Token names kept from the original
+     theme so existing classes keep working — "teal" = navy interactive,
+     "ink" = navy text scale, "parchment" = warm off-whites. */
+
+  --color-ink-950: #0b1120;
+  --color-ink-900: #16203a;
+  --color-ink-800: #1b2740;
+  --color-ink-700: #445071;
+  --color-ink-600: #5d6880;
+
+  --color-parchment-50: #fdfcfa;
+  --color-parchment-100: #f4f1ea;
+  --color-parchment-200: #e9e4d8;
+
+  /* interactive scale: navy buttons/links on white */
+  --color-teal-950: #0b1120;
+  --color-teal-900: #101a30;
+  --color-teal-800: #16203a;
+  --color-teal-700: #16203a;
+  --color-teal-600: #2a3a5f;
+  --color-teal-500: #3a4d7a;
+  --color-teal-400: #8f9ab5;
+  --color-teal-300: #a9b0c2;
+  --color-teal-200: #dfe3ec;
+  --color-teal-100: #eef0f5;
+
+  --color-gold-700: #8a6a24;
+  --color-gold-600: #b8933d;
+  --color-gold-500: #d4af52;
+  --color-gold-400: #e0c274;
+  --color-gold-300: #e9d194;
+  --color-gold-200: #f2e3b8;
+
+  --color-rose-500: #c14545;
+  --color-rose-100: #f8dede;
+  --color-leaf-500: #3f9a5c;
+  --color-leaf-100: #dcf1e2;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: var(--color-ink-800);
+  background-image:
+    radial-gradient(circle at 1px 1px, #edeff5 1px, transparent 0);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+}
+
+/* Yusr headings are set in Cormorant Garamond */
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.font-caps {
+  font-family: var(--font-caps);
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--color-gold-300);
+  color: var(--color-ink-950);
+}
+
+/* thin, unobtrusive scrollbars for the story reader / flashcard rails */
+.scroll-thin::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--color-teal-300);
+  border-radius: 999px;
+}
