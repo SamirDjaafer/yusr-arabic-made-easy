@@ -104,7 +104,7 @@ export function conjugatePresent(word: Word): Paradigm | null {
   // plural (يُرِدْنَ) — all of these need a hand-authored table instead
   const coreBare = core.replace(/[ً-ْ]/g, '')
   if (WEAK_LETTERS.includes(coreBare[coreBare.length - 1])) return null
-  if (['أ', 'ء'].includes(coreBare[0])) return null
+  if (['أ', 'ء', 'ؤ'].includes(coreBare[0])) return null // hamza-initial cores (يُؤْمِنُ → أُومِنُ) need special handling
   if ([...coreBare].some((ch) => WEAK_LETTERS.includes(ch))) return null
 
   const t = word.transliteration

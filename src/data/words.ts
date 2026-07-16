@@ -135,6 +135,24 @@ export const words: Word[] = [
   { id: 'abihi', arabic: 'أَبِيهِ', transliteration: 'abīhi', meaning: 'his father', root: 'أ-ب-و', partOfSpeech: 'noun', frequencyTier: 3, notes: 'أَب + ـهِ possessive suffix (after a preposition, genitive).' },
   { id: 'aabid', arabic: 'عَابِد', transliteration: "'ābid", meaning: 'a worshipper (one who worships)', root: 'ع-ب-د', partOfSpeech: 'noun', frequencyTier: 3, notes: 'Active participle (ism al-fā\'il) of عَبَدَ — describes the doer of the action.' },
   { id: 'qul', arabic: 'قُلْ', transliteration: 'qul', meaning: 'Say! (imperative)', root: 'ق-و-ل', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Imperative (amr) form of قَالَ.' },
+
+  // Present-tense counterparts for the remaining sound verbs, so the Word
+  // Forms Explorer covers both tenses of every verb it teaches. The present
+  // stem vowel is dictionary knowledge (not derivable from the past form),
+  // which is why these are entered by hand.
+  { id: 'yasalu', arabic: 'يَسْأَلُ', transliteration: "yas'alu", meaning: 'he asks', root: 'س-أ-ل', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of سَأَلَ.' },
+  { id: 'yafalu', arabic: 'يَفْعَلُ', transliteration: "yaf'alu", meaning: 'he does', root: 'ف-ع-ل', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of فَعَلَ.' },
+  { id: 'yaksiru', arabic: 'يَكْسِرُ', transliteration: 'yaksiru', meaning: 'he breaks', root: 'ك-س-ر', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of كَسَرَ.' },
+  { id: 'yakhruju', arabic: 'يَخْرُجُ', transliteration: 'yakhruju', meaning: 'he goes out', root: 'خ-ر-ج', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of خَرَجَ.' },
+  { id: 'yatruku', arabic: 'يَتْرُكُ', transliteration: 'yatruku', meaning: 'he leaves', root: 'ت-ر-ك', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of تَرَكَ.' },
+  { id: 'yansuru', arabic: 'يَنْصُرُ', transliteration: 'yanṣuru', meaning: 'he helps', root: 'ن-ص-ر', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of نَصَرَ.' },
+  { id: 'yajmau', arabic: 'يَجْمَعُ', transliteration: "yajma'u", meaning: 'he gathers', root: 'ج-م-ع', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of جَمَعَ.' },
+  { id: 'yasmau', arabic: 'يَسْمَعُ', transliteration: "yasma'u", meaning: 'he hears', root: 'س-م-ع', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of سَمِعَ.' },
+  { id: 'yaqbalu', arabic: 'يَقْبَلُ', transliteration: 'yaqbalu', meaning: 'he accepts', root: 'ق-ب-ل', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of قَبِلَ.' },
+  { id: 'yaghdabu', arabic: 'يَغْضَبُ', transliteration: 'yaghḍabu', meaning: 'he becomes angry', root: 'غ-ض-ب', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of غَضِبَ.' },
+  { id: 'yarjiu', arabic: 'يَرْجِعُ', transliteration: "yarji'u", meaning: 'he returns', root: 'ر-ج-ع', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of رَجَعَ.' },
+  { id: 'yajidu', arabic: 'يَجِدُ', transliteration: 'yajidu', meaning: 'he finds', root: 'و-ج-د', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of وَجَدَ — the initial و drops in the present.' },
+  { id: 'yusbihu', arabic: 'يُصْبِحُ', transliteration: 'yuṣbiḥu', meaning: 'he becomes', root: 'ص-ب-ح', partOfSpeech: 'verb', frequencyTier: 3, notes: 'Present tense of أَصْبَحَ (Form IV, hence the يُـ prefix).' },
 ]
 
 export function getWordById(id: string): Word | undefined {
