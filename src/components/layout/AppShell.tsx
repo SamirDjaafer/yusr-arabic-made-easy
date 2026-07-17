@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useProgressStore, STREAK_DAILY_TARGET } from '../../store/progressStore'
-import { getStoryById } from '../../data/stories'
+import { getStoryById, stories } from '../../data/stories'
+import { getActiveCode, clearActiveCode } from '../../lib/profile'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const streak = useProgressStore((s) => s.streak)
   const dailyActions = useProgressStore((s) => s.dailyActions)
   const savedToday = (dailyActions[new Date().toISOString().slice(0, 10)] ?? 0) >= STREAK_DAILY_TARGET
   const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const setCurrentStory = useProgressStore((s) => s.setCurrentStory)
   const story = getStoryById(currentStoryId)
   const location = useLocation()
-  const onSelectPage = location.pathname === '/'
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -25,18 +27,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           </NavLink>
 
           <div className="flex min-w-0 shrink items-center gap-2">
-            {!onSelectPage && story && (
-              <NavLink
-                to="/portal"
-                className={({ isActive }) =>
-                  `truncate rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-gold-500 text-ink-950' : 'text-parchment-100/85 hover:bg-white/10'
-                  }`
-                }
+            {story && (
+              <select
+                value={currentStoryId}
+                onChange={(e) => {
+                  setCurrentStory(e.target.value)
+                  if (location.pathname !== '/') navigate('/')
+                }}
+                title="Choose your lesson"
+                className="max-w-40 truncate rounded-full border border-gold-500/40 bg-transparent px-3 py-1.5 text-sm font-semibold text-gold-400 outline-none sm:max-w-64"
               >
-                <span className="sm:hidden">Lesson {story.order}</span>
-                <span className="hidden sm:inline">Lesson {story.order}: {story.title}</span>
-              </NavLink>
+                {stories.map((st) => (
+                  <option key={st.id} value={st.id} className="bg-ink-900 text-parchment-50">
+                    Lesson {st.order}: {st.title}
+                  </option>
+                ))}
+              </select>
             )}
             <div
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-gold-500/15 px-3 py-1.5 text-sm font-semibold text-gold-400"
@@ -46,6 +52,17 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span>{streak.count}</span>
               {savedToday && <span className="text-leaf-500" aria-label="Progress saved today">✓</span>}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearActiveCode()
+                window.location.reload()
+              }}
+              title={`Signed in as ${getActiveCode() ?? ''} — click to switch code`}
+              className="hidden shrink-0 rounded-full border border-gold-500/30 px-2.5 py-1.5 text-xs font-semibold text-parchment-100/70 transition-colors hover:bg-white/10 sm:block"
+            >
+              {getActiveCode()}
+            </button>
           </div>
         </div>
       </header>

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
-import { LessonSelectPage } from './pages/LessonSelectPage'
 import { PortalPage } from './pages/PortalPage'
+import { LoginScreen } from './components/LoginScreen'
+import { getActiveCode } from './lib/profile'
 import { StoryPage } from './pages/StoryPage'
 import { FlashcardsPage } from './pages/FlashcardsPage'
 import { VocabBankPage } from './pages/VocabBankPage'
@@ -12,12 +13,15 @@ import { ExercisesPage } from './pages/ExercisesPage'
 import { ChallengesPage } from './pages/ChallengesPage'
 
 export default function App() {
+  if (!getActiveCode()) {
+    return <LoginScreen />
+  }
   return (
     <BrowserRouter>
       <AppShell>
         <Routes>
-          <Route path="/" element={<LessonSelectPage />} />
-          <Route path="/portal" element={<PortalPage />} />
+          <Route path="/" element={<PortalPage />} />
+          <Route path="/portal" element={<Navigate to="/" replace />} />
           <Route path="/stories" element={<Navigate to="/" replace />} />
           <Route path="/stories/:storyId" element={<StoryPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />

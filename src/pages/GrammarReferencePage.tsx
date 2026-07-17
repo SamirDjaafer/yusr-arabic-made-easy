@@ -5,6 +5,7 @@ import { WordFormsExplorer } from '../components/WordFormsExplorer'
 import { useProgressStore } from '../store/progressStore'
 import { scopedConceptIds } from '../lib/lessonScope'
 import { getStoryById } from '../data/stories'
+import { principlesForLesson } from '../data/original/adapter'
 
 export function GrammarReferencePage() {
   const [showAll, setShowAll] = useState(false)
@@ -15,6 +16,7 @@ export function GrammarReferencePage() {
   const inScope = scopedConceptIds(currentStoryId)
 
   const concepts = showAll ? grammarConcepts : grammarConcepts.filter((c) => inScope.has(c.id))
+  const principles = principlesForLesson(currentStory?.order ?? 1)
 
   return (
     <div>
@@ -46,6 +48,26 @@ export function GrammarReferencePage() {
           </button>
         )}
       </div>
+
+      {principles.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-gold-400/40 bg-gold-200/30 p-5 dark:border-gold-500/30 dark:bg-gold-700/10">
+          <div className="flex items-center gap-2 text-gold-700 dark:text-gold-300">
+            <span aria-hidden className="text-lg">🗝️</span>
+            <p className="text-xs font-bold uppercase tracking-wide">Key principles — lesson {currentStory?.order}</p>
+          </div>
+          <div className="mt-3 space-y-2">
+            {principles.map((pr, i) => (
+              <details key={i} className="rounded-xl bg-parchment-50/70 p-3 dark:bg-ink-900/50">
+                <summary
+                  className="cursor-pointer text-sm font-semibold text-ink-900 dark:text-parchment-50"
+                  dangerouslySetInnerHTML={{ __html: pr.q }}
+                />
+                <p className="mt-2 text-sm leading-relaxed text-ink-700 dark:text-parchment-200/90" dangerouslySetInnerHTML={{ __html: pr.a }} />
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6">
         <WordFormsExplorer />

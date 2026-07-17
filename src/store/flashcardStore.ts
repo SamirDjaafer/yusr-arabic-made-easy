@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { FlashcardStateData, LeitnerCard } from '../types'
+import { profileStorage } from '../lib/profile'
 import { addDaysIso, intervalDaysForBox, nextBoxForRating, type LeitnerRating } from '../lib/leitner'
 
 /** the three self-grades used on card backs, matching the reference platform */
@@ -48,6 +49,6 @@ export const useFlashcardStore = create<FlashcardStore>()(
 
       getCard: (wordId) => get().cards[wordId],
     }),
-    { name: 'arabic-app-flashcards' },
+    { name: 'arabic-app-flashcards', storage: createJSONStorage(() => profileStorage) },
   ),
 )

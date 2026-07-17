@@ -1,7 +1,8 @@
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useProgressStore } from '../store/progressStore'
 import { getStoryById } from '../data/stories'
-import { scopedWords, scopedConceptIds } from '../lib/lessonScope'
+import { scopedConceptIds } from '../lib/lessonScope'
+import { lexiconUpTo, principlesForLesson } from '../data/original/adapter'
 import { DesertJourney } from '../components/DesertJourney'
 
 export function PortalPage() {
@@ -9,10 +10,10 @@ export function PortalPage() {
   const mistakeQueue = useProgressStore((s) => s.mistakeQueue)
 
   const story = getStoryById(currentStoryId)
-  if (!story) return <Navigate to="/" replace />
+  if (!story) return null
 
-  const vocabCount = scopedWords(story.id).length
-  const grammarCount = scopedConceptIds(story.id).size
+  const vocabCount = lexiconUpTo(story.order).length
+  const grammarCount = scopedConceptIds(story.id).size + principlesForLesson(story.order).length
 
   const extras = [
     { to: '/lab', icon: '🧪', label: 'Sentences' },
@@ -49,9 +50,6 @@ export function PortalPage() {
             {e.icon} {e.label}
           </Link>
         ))}
-        <Link to="/" className="rounded-full px-4 py-1.5 text-sm font-medium text-gold-600 underline decoration-gold-500/40 underline-offset-2">
-          Change lesson
-        </Link>
       </div>
     </div>
   )

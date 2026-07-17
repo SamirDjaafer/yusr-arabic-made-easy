@@ -20,7 +20,7 @@ export function Flashcard({ card, flipped, onFlip }: { card: FlashcardItem; flip
           style={{ transform: 'rotateY(180deg)' }}
         >
           <p className="text-2xl font-bold text-ink-900 dark:text-parchment-50">{card.meaning}</p>
-          <p className="mt-1 italic text-teal-700 dark:text-teal-300">{card.transliteration}</p>
+          {card.transliteration && <p className="mt-1 italic text-teal-700 dark:text-teal-300">{card.transliteration}</p>}
           {card.root && (
             <p className="font-arabic mt-2 text-lg text-ink-700 dark:text-parchment-200/80" dir="rtl">
               جذر: {card.root}

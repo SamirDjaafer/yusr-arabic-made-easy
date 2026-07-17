@@ -2,6 +2,7 @@ import type { FlashcardItem, GrammarConcept, ParadigmKind, ParadigmRow } from '.
 import { getStoryById } from '../data/stories'
 import { getWordById } from '../data/words'
 import { getGrammarConcept } from '../data/grammar'
+import { decksForLesson } from '../data/original/adapter'
 
 export interface NamedDeck {
   id: string
@@ -9,10 +10,13 @@ export interface NamedDeck {
   cards: FlashcardItem[]
 }
 
-/** The single flashcard deck for a story: every word it teaches, in order. */
+/** The flashcard deck for a story — the original database's deck(s) for that
+    lesson (including sub-decks), falling back to the story's own word list. */
 export function getStoryDeck(storyId: string): FlashcardItem[] {
   const story = getStoryById(storyId)
   if (!story) return []
+  const original = decksForLesson(story.order).flatMap((d) => d.cards)
+  if (original.length > 0) return original
   return story.newWordIds
     .map((id) => getWordById(id))
     .filter((w): w is NonNullable<typeof w> => Boolean(w))

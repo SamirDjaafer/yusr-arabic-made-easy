@@ -46,7 +46,7 @@ export function FullStoryView({ story }: { story: Story }) {
               </div>
               {showEnglish && (
                 <div className="mt-1 text-right">
-                  <p className="text-sm italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>
+                  {seg.transliteration && <p className="text-sm italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>}
                   <p className="text-sm text-ink-600 dark:text-parchment-200/80">{seg.english}</p>
                 </div>
               )}

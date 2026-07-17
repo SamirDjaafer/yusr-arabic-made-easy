@@ -4,6 +4,7 @@ import { useProgressStore } from '../store/progressStore'
 import { getStoryById } from '../data/stories'
 import { getWordById } from '../data/words'
 import { comprehension } from '../data/comprehension'
+import { challenge1Words, challenge2Sentences, comprehensionPool } from '../data/original/adapter'
 import type { NarrationSegment } from '../types'
 
 const FUNCTION_POS = new Set(['particle', 'preposition', 'pronoun', 'demonstrative', 'relative-pronoun'])
@@ -151,14 +152,15 @@ function OwnSentences({ storyId, onExit }: { storyId: string; onExit: () => void
   const saved = useProgressStore((s) => s.challenges[storyId]?.['own-sentences'])
   const saveChallenge = useProgressStore((s) => s.saveChallenge)
 
-  const keyWords = useMemo(
-    () =>
-      story.newWordIds
-        .map((id) => getWordById(id))
-        .filter((w): w is NonNullable<typeof w> => Boolean(w) && !FUNCTION_POS.has(w!.partOfSpeech))
-        .slice(0, 15),
-    [story],
-  )
+  const keyWords = useMemo(() => {
+    const pool = challenge1Words(story.order)
+    if (pool.length > 0) return pool.map((w, i) => ({ id: `c1-${i}`, arabic: w.ar, meaning: w.en }))
+    return story.newWordIds
+      .map((id) => getWordById(id))
+      .filter((w): w is NonNullable<typeof w> => Boolean(w) && !FUNCTION_POS.has(w!.partOfSpeech))
+      .slice(0, 15)
+      .map((w) => ({ id: w.id, arabic: w.arabic, meaning: w.meaning }))
+  }, [story])
 
   const [answers, setAnswers] = useState<string[]>(() => {
     const base = keyWords.map(() => '')
@@ -229,10 +231,14 @@ function TranslateChallenge({ storyId, onExit }: { storyId: string; onExit: () =
   const saved = useProgressStore((s) => s.challenges[storyId]?.['translate'])
   const saveChallenge = useProgressStore((s) => s.saveChallenge)
 
-  const sentences = useMemo(
-    () => story.segments.filter((s): s is NarrationSegment => s.kind === 'narration').slice(0, 8),
-    [story],
-  )
+  const sentences = useMemo(() => {
+    const pool = challenge2Sentences(story.order)
+    if (pool.length > 0) return pool.map((q, i) => ({ id: `c2-${i}`, english: q.en, arabic: q.ar, transliteration: '' }))
+    return story.segments
+      .filter((s): s is NarrationSegment => s.kind === 'narration')
+      .slice(0, 8)
+      .map((seg) => ({ id: seg.id, english: seg.english, arabic: seg.arabic, transliteration: seg.transliteration }))
+  }, [story])
 
   const [answers, setAnswers] = useState<string[]>(() => {
     const base = sentences.map(() => '')
@@ -284,7 +290,7 @@ function TranslateChallenge({ storyId, onExit }: { storyId: string; onExit: () =
             <p className="font-arabic text-2xl text-ink-900 dark:text-parchment-50" dir="rtl">
               {seg.arabic}
             </p>
-            <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>
+            {seg.transliteration && <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>}
           </div>
         )}
       </div>
@@ -295,7 +301,19 @@ function TranslateChallenge({ storyId, onExit }: { storyId: string; onExit: () =
 function ComprehensionChallenge({ storyId, onExit }: { storyId: string; onExit: () => void }) {
   const saved = useProgressStore((s) => s.challenges[storyId]?.['comprehension'])
   const saveChallenge = useProgressStore((s) => s.saveChallenge)
-  const items = comprehension[storyId] ?? []
+  const story = getStoryById(storyId)
+  const items = useMemo(() => {
+    const ours = comprehension[storyId]
+    if (ours && ours.length > 0) return ours
+    return comprehensionPool(story?.order ?? 0).map((q) => ({
+      questionArabic: q.ar,
+      questionTransliteration: '',
+      questionEnglish: q.en,
+      modelArabic: '',
+      modelTransliteration: '',
+      modelEnglish: '',
+    }))
+  }, [storyId, story])
 
   const [answers, setAnswers] = useState<string[]>(() => {
     const base = items.map(() => '')
@@ -356,7 +374,11 @@ function ComprehensionChallenge({ storyId, onExit }: { storyId: string; onExit: 
           placeholder="اكتب جوابك بجملة كاملة..."
           className={`${inputClass} mt-3`}
         />
-        {!revealed ? (
+        {!item.modelArabic ? (
+          <p className="mt-3 text-xs text-ink-500 dark:text-parchment-200/50">
+            ✍️ No model answer for this one — we'll go over it together in lesson.
+          </p>
+        ) : !revealed ? (
           <button type="button" onClick={() => setRevealed(true)} className={`${ghostBtn} mt-3`}>
             Reveal model answer
           </button>
@@ -365,7 +387,7 @@ function ComprehensionChallenge({ storyId, onExit }: { storyId: string; onExit: 
             <p className="font-arabic text-2xl text-ink-900 dark:text-parchment-50" dir="rtl">
               {item.modelArabic}
             </p>
-            <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{item.modelTransliteration}</p>
+            {item.modelTransliteration && <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{item.modelTransliteration}</p>}
             <p className="mt-0.5 text-xs text-ink-600 dark:text-parchment-200/70">{item.modelEnglish}</p>
           </div>
         )}

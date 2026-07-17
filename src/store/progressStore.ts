@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ProgressStateData } from '../types'
+import { profileStorage } from '../lib/profile'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -141,6 +142,6 @@ export const useProgressStore = create<ProgressStore>()(
         })
       },
     }),
-    { name: 'arabic-app-progress' },
+    { name: 'arabic-app-progress', storage: createJSONStorage(() => profileStorage) },
   ),
 )

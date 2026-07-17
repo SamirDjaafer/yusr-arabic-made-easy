@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
-import { words } from '../data/words'
 import type { PartOfSpeech } from '../types'
 import { ArabicText } from '../components/ArabicText'
 import { useProgressStore } from '../store/progressStore'
-import { isWordInScope } from '../lib/lessonScope'
 import { getStoryById } from '../data/stories'
+import { lexiconUpTo, MAX_LESSON } from '../data/original/adapter'
 
 const POS_LABELS: Record<PartOfSpeech, string> = {
   noun: 'Noun',
@@ -18,23 +17,6 @@ const POS_LABELS: Record<PartOfSpeech, string> = {
   'relative-pronoun': 'Relative pronoun',
 }
 
-/**
- * The vocab bank shows only DICTIONARY (base) forms — the past-tense "he"
- * form for verbs (عَبَدَ not يَعْبُدُ or عَبَدْتُ) and the bare singular for
- * nouns (بَيْت not بَيْتُكُمْ). Conjugations and inflected forms live in the
- * Grammar page's Word Forms Explorer instead.
- */
-function isBaseForm(w: (typeof words)[number]): boolean {
-  if (w.arabic.includes(' ')) return false // multi-word entries like لَنْ يَتْرُكَ
-  if (/\b(my|your|his|her|our|their)\b/.test(w.meaning)) return false // suffixed nouns like دِينُكُمْ
-  if (w.partOfSpeech === 'verb') {
-    if (/^ي[َُ]/.test(w.arabic)) return false // present-tense twin — explorer covers it
-    if (!/^(he|it) |^is /.test(w.meaning)) return false // conjugated persons like كَتَبْتُ "I wrote"
-  }
-  return true
-}
-
-const baseWords = words.filter(isBaseForm)
 
 export function VocabBankPage() {
   const [tierFilter, setTierFilter] = useState<0 | 1 | 2 | 3>(0)
@@ -44,29 +26,30 @@ export function VocabBankPage() {
   const currentStoryId = useProgressStore((s) => s.currentStoryId)
   const currentStory = getStoryById(currentStoryId)
 
+  const lexWords = useMemo(() => lexiconUpTo(showAll ? MAX_LESSON : (currentStory?.order ?? 1)), [showAll, currentStory])
+
   const filtered = useMemo(() => {
-    return baseWords.filter((w) => {
-      if (!showAll && !isWordInScope(w, currentStoryId)) return false
+    return lexWords.filter((w) => {
       if (tierFilter !== 0 && w.frequencyTier !== tierFilter) return false
       if (posFilter !== 'all' && w.partOfSpeech !== posFilter) return false
       if (query.trim()) {
         const q = query.trim().toLowerCase()
-        if (!w.meaning.toLowerCase().includes(q) && !w.transliteration.toLowerCase().includes(q) && !w.arabic.includes(q)) {
+        if (!w.meaning.toLowerCase().includes(q) && !w.arabic.includes(q)) {
           return false
         }
       }
       return true
     })
-  }, [tierFilter, posFilter, query, showAll, currentStoryId])
+  }, [lexWords, tierFilter, posFilter, query])
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-ink-900 dark:text-parchment-50">Vocabulary bank</h1>
       <p className="mt-1 text-sm text-ink-600 dark:text-parchment-200/80">
         {showAll
-          ? `All ${baseWords.length} words across every lesson, in dictionary form.`
-          : `Words for lessons 1–${currentStory?.order ?? 1} (your current lesson), in dictionary form.`}{' '}
-        For every conjugation and suffix of a word, see the Word Forms Explorer on the Grammar page.
+          ? `All ${lexWords.length} words across every lesson, from the original word list.`
+          : `${lexWords.length} words for lessons 1–${currentStory?.order ?? 1} (your current lesson).`}{' '}
+        For conjugations and suffixes, see the Word Forms Explorer on the Grammar page.
       </p>
       <button
         type="button"
@@ -120,11 +103,7 @@ export function VocabBankPage() {
             <div className="mt-2">
               <ArabicText arabic={w.arabic} transliteration={w.transliteration} english={w.meaning} size="md" />
             </div>
-            {w.root && (
-              <p className="mt-2 text-right text-xs text-ink-500 dark:text-parchment-200/50" dir="rtl">
-                جذر: {w.root}
-              </p>
-            )}
+            {w.notes && <p className="mt-2 text-right text-xs text-ink-500 dark:text-parchment-200/50">{w.notes}</p>}
           </div>
         ))}
         {filtered.length === 0 && <p className="text-sm text-ink-500 dark:text-parchment-200/50">No words match those filters.</p>}

@@ -220,7 +220,7 @@ export function DesertJourney({ storyId }: { storyId: string }) {
       })}
 
       {/* current lesson tent (Home) */}
-      <g style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+      <g>
         <circle cx={stopX(0)} cy={stopY(0) - 25} r={72} fill="#F4C14E" fillOpacity={0.16} stroke="#F4C14E" strokeWidth={2} strokeOpacity={0.7} />
         <TentShape x={stopX(0)} y={stopY(0)} open />
         <rect x={stopX(0) - 34} y={stopY(0) + 31} width={68} height={26} rx={13} fill="#FCE2A0" />

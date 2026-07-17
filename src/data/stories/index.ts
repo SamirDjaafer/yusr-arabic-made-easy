@@ -5,8 +5,13 @@ import { story03 } from './story-03-tawhid'
 import { story04 } from './story-04-the-eid'
 import { story05 } from './story-05-the-disputation'
 import { story06 } from './story-06-the-fire'
+import { originalStoriesFrom } from '../original/adapter'
 
-export const stories: Story[] = [story01, story02, story03, story04, story05, story06].sort((a, b) => a.order - b.order)
+// Lessons 1-6 are our hand-enriched versions (with inline exercises and
+// grammar tips); lessons 7+ come straight from the original database.
+export const stories: Story[] = [story01, story02, story03, story04, story05, story06, ...originalStoriesFrom(7)].sort(
+  (a, b) => a.order - b.order,
+)
 
 export function getStoryById(id: string): Story | undefined {
   return stories.find((s) => s.id === id)

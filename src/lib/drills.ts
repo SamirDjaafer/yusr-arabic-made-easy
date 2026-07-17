@@ -1,6 +1,7 @@
 import type { NarrationSegment, Story } from '../types'
 import { getStoryById } from '../data/stories'
 import { getWordById } from '../data/words'
+import { changeWordPool, trueFalsePool, decksForLesson } from '../data/original/adapter'
 
 // Generators for the three lesson drills (mirroring the reference platform):
 //  - change-one-word: one word in a real story sentence is swapped for a
@@ -18,6 +19,8 @@ export interface WordDrillQuestion {
   english: string
   corruptedIndex: number
   correctToken: string
+  /** the wrong sentence's English meaning, when the original database provides it */
+  englishWrong?: string
 }
 
 export interface TrueFalseQuestion {
@@ -112,6 +115,21 @@ function narrations(story: Story): NarrationSegment[] {
 export function makeChangeOneWord(storyId: string): WordDrillQuestion | null {
   const story = getStoryById(storyId)
   if (!story) return null
+  // authored questions from the original database take priority
+  const authored = changeWordPool(story.order)
+  if (authored.length > 0) {
+    const q = pick(authored)
+    const tokens = q.sentence.split(' ')
+    return {
+      kind: 'change-one-word',
+      displaySentence: q.sentence,
+      transliteration: '',
+      english: q.en,
+      corruptedIndex: Math.max(0, tokens.indexOf(q.wrong)),
+      correctToken: q.correct,
+      englishWrong: q.enWrong,
+    }
+  }
   const pool = narrations(story)
   for (let attempt = 0; attempt < 10; attempt++) {
     const seg = pick(pool)
@@ -133,6 +151,19 @@ export function makeChangeOneWord(storyId: string): WordDrillQuestion | null {
 export function makeTrueFalse(storyId: string): TrueFalseQuestion | null {
   const story = getStoryById(storyId)
   if (!story) return null
+  const authored = trueFalsePool(story.order)
+  if (authored.length > 0) {
+    const q = pick(authored)
+    return {
+      kind: 'true-false',
+      displaySentence: q.sentence,
+      transliteration: '',
+      english: q.en,
+      isTrue: q.answer,
+      originalSentence: '',
+      note: q.answer ? 'The sentence is exactly as it appears in the story.' : `The story's sentence means: "${q.en}"`,
+    }
+  }
   const pool = narrations(story)
   for (let attempt = 0; attempt < 10; attempt++) {
     const seg = pick(pool)
@@ -167,6 +198,17 @@ export function makeTrueFalse(storyId: string): TrueFalseQuestion | null {
 export function makeVocabTranslate(storyId: string): VocabTranslateQuestion | null {
   const story = getStoryById(storyId)
   if (!story) return null
+  const deckCards = decksForLesson(story.order).flatMap((d) => d.cards)
+  if (deckCards.length > 0) {
+    const card = pick(deckCards)
+    return {
+      kind: 'vocab-translate',
+      english: card.meaning.split(',')[0].split('(')[0].trim(),
+      arabic: card.arabic,
+      transliteration: card.transliteration,
+    }
+  }
+  if (story.newWordIds.length === 0) return null
   const word = getWordById(pick(story.newWordIds))
   if (!word) return null
   return {
