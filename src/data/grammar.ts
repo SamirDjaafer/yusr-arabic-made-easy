@@ -484,6 +484,63 @@ export const grammarConcepts: GrammarConcept[] = [
       },
     ],
   },
+  {
+    id: 'future-tense',
+    title: 'The Future: سَـ and سَوْفَ',
+    summary: 'Prefix سَـ onto a present-tense verb for "will ___"; the separate word سَوْفَ does the same for the further future.',
+    explanation:
+      'Arabic has no separate future conjugation to memorise — the future is built ON the present tense.\n\n' +
+      'For the near future, attach the prefix سَـ (sa-) directly onto any present-tense form: يَعْبُدُ "he worships" → سَيَعْبُدُ "he will worship". Every person works the same way: سَأَعْبُدُ "I will worship", سَنَعْبُدُ "we will worship", سَتَعْبُدُونَ "you (pl.) will worship".\n\n' +
+      'For the more distant future, use the separate word سَوْفَ (sawfa) before the plain present verb instead: سَوْفَ تَعْلَمُونَ "you will (surely) come to know" — a form the Qur\'an uses for solemn promises and warnings. The two are close in meaning; سَـ is lighter and nearer, سَوْفَ weightier and farther.\n\n' +
+      'To NEGATE the future, neither سَـ nor سَوْفَ is used at all — that is لَنْ\'s job (see Negation): لَنْ يَتْرُكَ "he will never leave".',
+    examples: [
+      { arabic: 'سَيَعْبُدُ', transliteration: "saya'budu", gloss: 'he will worship' },
+      { arabic: 'سَأَقُولُ', transliteration: 'sa-aqūlu', gloss: 'I will say' },
+      { arabic: 'سَوْفَ تَرَوْنَ', transliteration: 'sawfa tarawna', gloss: 'you (pl.) will (surely) see — distant future' },
+      { arabic: 'لَنْ أَعْبُدَ', transliteration: "lan a'buda", gloss: 'I will never worship (future negated with لَنْ)' },
+    ],
+    paradigms: [
+      {
+        title: 'سَـ + يَعْبُدُ (he will worship) — representative persons',
+        kind: 'verb-future',
+        rows: [
+          { label: 'I', arabic: 'سَأَعْبُدُ', transliteration: "sa-a'budu", gloss: 'I will worship' },
+          { label: 'he', arabic: 'سَيَعْبُدُ', transliteration: "saya'budu", gloss: 'he will worship' },
+          { label: 'she', arabic: 'سَتَعْبُدُ', transliteration: "sata'budu", gloss: 'she will worship' },
+          { label: 'we', arabic: 'سَنَعْبُدُ', transliteration: "sana'budu", gloss: 'we will worship' },
+          { label: 'they (masc.)', arabic: 'سَيَعْبُدُونَ', transliteration: "saya'budūna", gloss: 'they will worship' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'active-participle',
+    title: 'Active Participle (اسم الفاعل): the "doer"',
+    summary: 'Turn a verb into the person doing it — عَبَدَ "he worshipped" → عَابِد "one who worships" — on the فَاعِل pattern.',
+    explanation:
+      'Arabic can turn any verb into a NOUN meaning "the one who does it", called ism al-fāʿil. For simple (Form I) verbs the recipe is fixed: take the three root letters and pour them into the mould فَاعِل (fā-ʿil) — alif after the first letter, kasra under the second.\n\n' +
+      'عَبَدَ (he worshipped) → عَابِد (a worshipper). كَفَرَ (he disbelieved) → كَافِر (a disbeliever). سَجَدَ (he prostrated) → سَاجِد (one prostrating). You have been using these words all along — كَافِرُون in Sūrat al-Kāfirūn is simply the plural of the participle of كَفَرَ.\n\n' +
+      'Being a noun, the participle takes all the normal noun machinery you know: ة for feminine (عَابِدَة), ـُونَ for masculine plural (عَابِدُونَ), ـَات for feminine plural (عَابِدَات), plus ال and case endings.\n\n' +
+      'One caveat: verbs from DERIVED forms use a different mould with مُـ. That is why "believer" from آمَنَ (Form IV) is مُؤْمِن, not آمِن — the famous words مُؤْمِن، مُسْلِم، مُشْرِك are all مُـ participles of derived verbs.',
+    examples: [
+      { arabic: 'عَابِدٌ', transliteration: "'ābidun", gloss: 'one who worships (from عَبَدَ)' },
+      { arabic: 'كَافِرٌ', transliteration: 'kāfirun', gloss: 'one who disbelieves (from كَفَرَ)' },
+      { arabic: 'سَاجِدٌ', transliteration: 'sājidun', gloss: 'one prostrating (from سَجَدَ)' },
+      { arabic: 'مُؤْمِنٌ', transliteration: "mu'minun", gloss: 'a believer (from Form IV آمَنَ — hence مُـ, not فَاعِل)' },
+    ],
+    paradigms: [
+      {
+        title: 'عَابِد (one who worships) — all four regular forms',
+        kind: 'participle',
+        rows: [
+          { label: 'masc. singular', arabic: 'عَابِد', transliteration: "'ābid", gloss: 'one who worships (m.)' },
+          { label: 'fem. singular', arabic: 'عَابِدَة', transliteration: "'ābidah", gloss: 'one who worships (f.)' },
+          { label: 'masc. plural (sound)', arabic: 'عَابِدُونَ', transliteration: "'ābidūna", gloss: 'those who worship (m.)' },
+          { label: 'fem. plural (sound)', arabic: 'عَابِدَات', transliteration: "'ābidāt", gloss: 'those who worship (f.)' },
+        ],
+      },
+    ],
+  },
 ]
 
 export function getGrammarConcept(id: string): GrammarConcept | undefined {

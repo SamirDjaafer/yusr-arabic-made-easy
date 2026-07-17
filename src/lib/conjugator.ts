@@ -135,6 +135,105 @@ export function conjugatePresent(word: Word): Paradigm | null {
   }
 }
 
+// --- near future (سَـ + present) ---------------------------------------------
+
+const FUTURE_PERSON_GLOSS: Record<string, string> = {
+  I: 'I',
+  'you (masc.)': 'you',
+  'you (fem.)': 'you',
+  he: 'he',
+  she: 'she',
+  we: 'we',
+  'you (masc. plural)': 'you (m. pl.)',
+  'you (fem. plural)': 'you (f. pl.)',
+  'they (masc.)': 'they (m.)',
+  'they (fem.)': 'they (f.)',
+}
+
+/** "he worships" → "worship"; handles does/goes and drops anything after a comma */
+function baseVerbMeaning(meaning: string): string {
+  const m = meaning.replace(/^(he|it) /, '').split(',')[0].trim()
+  const [first, ...rest] = m.split(' ')
+  const de = first === 'does' ? 'do' : first === 'goes' ? 'go' : first === 'has' ? 'have' : first.endsWith('s') && !first.endsWith('ss') ? first.slice(0, -1) : first
+  return [de, ...rest].join(' ')
+}
+
+/**
+ * The near future is completely regular: سَـ (sa-) prefixed onto ANY present
+ * indicative form. سَوْفَ (sawfa) before the verb does the same job for the
+ * further future. Derived directly from the present-tense table.
+ */
+export function conjugateFuture(word: Word): Paradigm | null {
+  const present = conjugatePresent(word)
+  if (!present) return null
+
+  const base = word.root === 'ك-و-ن' ? 'be' : baseVerbMeaning(word.meaning)
+  const heRow = present.rows.find((r) => r.label === 'he')
+
+  return {
+    title: `Near future (سَـ + المضارع) of ${heRow ? 'سَ' + heRow.arabic : word.arabic} — every person`,
+    kind: 'verb-future',
+    rows: present.rows.map((r) => ({
+      label: r.label,
+      arabic: 'سَ' + r.arabic,
+      transliteration: /^[aāuūiī]/.test(r.transliteration) ? `sa-${r.transliteration}` : `sa${r.transliteration}`,
+      gloss: `${FUTURE_PERSON_GLOSS[r.label] ?? r.label} will ${base}`,
+    })),
+  }
+}
+
+// --- active participle (اسم الفاعل) -------------------------------------------
+
+const LETTER_TO_LATIN: Record<string, string> = {
+  'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'ḥ', 'خ': 'kh', 'د': 'd', 'ذ': 'dh',
+  'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh', 'ص': 'ṣ', 'ض': 'ḍ', 'ط': 'ṭ', 'ظ': 'ẓ',
+  'ع': "'", 'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+  'ه': 'h', 'و': 'w', 'ي': 'y',
+}
+
+/**
+ * Active participle (the "doer" noun) on the فَاعِل pattern — only generated
+ * for plain Form I sound verbs, where the pattern is fully regular. Derived
+ * forms (Form IV مُفْعِل like مُؤْمِن) and weak/hollow roots (قَائِل) need
+ * hand-authored tables instead.
+ */
+export function activeParticiple(word: Word): Paradigm | null {
+  const hand = HAND_AUTHORED[word.id]?.participle
+  if (hand) return hand
+  if (word.partOfSpeech !== 'verb' || !isPastSound(word)) return null
+  if (!/^(he|it) /.test(word.meaning) || word.arabic.includes(' ')) return null
+
+  const letters = rootLetters(word)!
+  const [c1, c2, c3] = letters
+  // Form I only: the bare letters of the past form must BE the root letters
+  if (word.arabic.replace(/[ً-ْ]/g, '') !== letters.join('')) return null
+  if (['أ', 'ء', 'ؤ', 'ئ'].includes(c2)) return null // middle hamza changes seat (سَائِل)
+  const l1 = LETTER_TO_LATIN[c1]
+  const l2 = LETTER_TO_LATIN[c2]
+  const l3 = LETTER_TO_LATIN[c3]
+  if (!l1 || !l2 || !l3) return null
+
+  // doer meaning comes from the present-tense twin: "he worships" → "one who worships"
+  const twin = words.find((w) => w.root === word.root && w !== word && /^ي/.test(w.arabic) && /^(he|it) /.test(w.meaning))
+  if (!twin) return null
+  const doing = twin.meaning.replace(/^(he|it) /, '').split(',')[0].trim() // "worships"
+  const doingPlural = baseVerbMeaning(twin.meaning) // "worship" (handles does/goes)
+
+  const stem = c1 + FATHA + 'ا' + c2 + KASRA + c3 // فَاعِل
+  const tStem = `${l1}ā${l2}i${l3}`
+
+  return {
+    title: `Active participle (اسم الفاعل) of ${word.arabic} — ${stem} "one who ${doing}"`,
+    kind: 'participle',
+    rows: [
+      { label: 'masc. singular', arabic: stem, transliteration: tStem, gloss: `one who ${doing} (m.)` },
+      { label: 'fem. singular', arabic: stem + FATHA + 'ة', transliteration: tStem + 'ah', gloss: `one who ${doing} (f.)` },
+      { label: 'masc. plural (sound)', arabic: stem + DAMMA + 'ونَ', transliteration: tStem + 'ūna', gloss: `those who ${doingPlural} (m.)` },
+      { label: 'fem. plural (sound)', arabic: stem + FATHA + 'ات', transliteration: tStem + 'āt', gloss: `those who ${doingPlural} (f.)` },
+    ],
+  }
+}
+
 // --- imperative (command form) ----------------------------------------------
 
 export function conjugateImperative(word: Word): Paradigm | null {
@@ -262,7 +361,19 @@ export function nounCases(word: Word): Paradigm | null {
 
 // --- hand-authored tables for common irregular verbs ------------------------
 
-const HAND_AUTHORED: Record<string, { past?: Paradigm; present?: Paradigm; imperative?: Paradigm }> = {
+const HAND_AUTHORED: Record<string, { past?: Paradigm; present?: Paradigm; imperative?: Paradigm; participle?: Paradigm }> = {
+  aamana: {
+    participle: {
+      title: 'Active participle (اسم الفاعل) of آمَنَ — مُؤْمِن "believer"',
+      kind: 'participle',
+      rows: [
+        { label: 'masc. singular', arabic: 'مُؤْمِن', transliteration: "mu'min", gloss: 'a believer (m.) — Form IV participles use مُـ instead of فَاعِل' },
+        { label: 'fem. singular', arabic: 'مُؤْمِنَة', transliteration: "mu'minah", gloss: 'a believer (f.)' },
+        { label: 'masc. plural (sound)', arabic: 'مُؤْمِنُونَ', transliteration: "mu'minūna", gloss: 'believers (m.)' },
+        { label: 'fem. plural (sound)', arabic: 'مُؤْمِنَات', transliteration: "mu'mināt", gloss: 'believers (f.)' },
+      ],
+    },
+  },
   kana: {
     past: {
       title: 'Past tense (الماضي) of كَانَ (to be) — every person',
@@ -498,12 +609,21 @@ export function getVerbPairs(): VerbPair[] {
 
 // --- catalog for the explorer UI --------------------------------------------
 
-export type ExplorerCategory = 'past-verbs' | 'present-verbs' | 'imperative-verbs' | 'noun-possessive' | 'noun-cases'
+export type ExplorerCategory =
+  | 'past-verbs'
+  | 'present-verbs'
+  | 'future-verbs'
+  | 'imperative-verbs'
+  | 'participles'
+  | 'noun-possessive'
+  | 'noun-cases'
 
 export const CATEGORY_LABELS: Record<ExplorerCategory, string> = {
   'past-verbs': 'Past tense verbs (الماضي)',
   'present-verbs': 'Present tense verbs (المضارع)',
+  'future-verbs': 'Near future (سَـ + المضارع)',
   'imperative-verbs': 'Command form (الأمر)',
+  participles: 'Active participles (اسم الفاعل)',
   'noun-possessive': 'Nouns — possessive suffixes',
   'noun-cases': 'Nouns — case endings',
 }
@@ -514,8 +634,12 @@ export function getTable(category: ExplorerCategory, word: Word): Paradigm | nul
       return conjugatePast(word)
     case 'present-verbs':
       return conjugatePresent(word)
+    case 'future-verbs':
+      return conjugateFuture(word)
     case 'imperative-verbs':
       return conjugateImperative(word)
+    case 'participles':
+      return activeParticiple(word)
     case 'noun-possessive':
       return nounPossessive(word)
     case 'noun-cases':

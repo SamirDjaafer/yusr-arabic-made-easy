@@ -45,7 +45,15 @@ export interface ParadigmRow {
   gloss: string
 }
 
-export type ParadigmKind = 'verb-past' | 'verb-present' | 'verb-imperative' | 'noun-suffix' | 'case' | 'other'
+export type ParadigmKind =
+  | 'verb-past'
+  | 'verb-present'
+  | 'verb-future'
+  | 'verb-imperative'
+  | 'participle'
+  | 'noun-suffix'
+  | 'case'
+  | 'other'
 
 export interface Paradigm {
   /** e.g. "رَبّ (Lord) with every possessive suffix" */
