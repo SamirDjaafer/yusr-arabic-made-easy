@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useProgressStore } from '../../store/progressStore'
+import { useProgressStore, STREAK_DAILY_TARGET } from '../../store/progressStore'
 import { getStoryById } from '../../data/stories'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const streak = useProgressStore((s) => s.streak)
+  const dailyActions = useProgressStore((s) => s.dailyActions)
+  const savedToday = (dailyActions[new Date().toISOString().slice(0, 10)] ?? 0) >= STREAK_DAILY_TARGET
   const currentStoryId = useProgressStore((s) => s.currentStoryId)
   const story = getStoryById(currentStoryId)
   const location = useLocation()
@@ -38,10 +40,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
             <div
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-gold-500/15 px-3 py-1.5 text-sm font-semibold text-gold-400"
-              title="Daily streak"
+              title={savedToday ? 'Progress saved today — streak secured' : `Do ${STREAK_DAILY_TARGET} cards or questions today to keep your streak`}
             >
               <span aria-hidden>🔥</span>
               <span>{streak.count}</span>
+              {savedToday && <span className="text-leaf-500" aria-label="Progress saved today">✓</span>}
             </div>
           </div>
         </div>

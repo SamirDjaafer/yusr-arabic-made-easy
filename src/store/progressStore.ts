@@ -11,6 +11,9 @@ export type SelfGrade = 'no-idea' | 'nearly' | 'got-it'
 /** correct answers needed in a drill type before it shows as mastered for the current lesson */
 export const MASTERY_TARGET = 10
 
+/** actions (cards graded / questions answered) needed in a day for the streak to count — same rule as the original platform */
+export const STREAK_DAILY_TARGET = 20
+
 interface ProgressStore extends ProgressStateData {
   /** the lesson/story the student says they are on — scopes vocab, grammar, exercises, challenges */
   currentStoryId: string
@@ -18,6 +21,14 @@ interface ProgressStore extends ProgressStateData {
   drillMastery: Record<string, Record<string, number>>
   /** per story, per challenge id: saved answers + submitted flag */
   challenges: Record<string, Record<string, { answers: string[]; submitted: boolean }>>
+  /** stories whose grammar the student has marked as done (lights the Grammar torch on the journey) */
+  grammarDone: Record<string, true>
+  /** actions performed per day (date key -> count) — 20 in a day locks in the streak */
+  dailyActions: Record<string, number>
+
+  markGrammarDone: (storyId: string) => void
+  /** count an action toward today's streak; weight lets big events (finishing a story) qualify a day at once */
+  recordAction: (weight?: number) => void
 
   setCurrentStory: (storyId: string) => void
   completeStory: (storyId: string) => void
@@ -43,11 +54,24 @@ export const useProgressStore = create<ProgressStore>()(
       currentStoryId: 'story-01',
       drillMastery: {},
       challenges: {},
+      grammarDone: {},
+      dailyActions: {},
+
+      markGrammarDone: (storyId) => {
+        get().recordAction(5)
+        set((state) => ({ grammarDone: { ...state.grammarDone, [storyId]: true } }))
+      },
+
+      recordAction: (weight = 1) => {
+        const today = todayIso()
+        set((state) => ({ dailyActions: { ...state.dailyActions, [today]: (state.dailyActions[today] ?? 0) + weight } }))
+        if ((get().dailyActions[today] ?? 0) >= STREAK_DAILY_TARGET) get().touchStreak()
+      },
 
       setCurrentStory: (storyId) => set({ currentStoryId: storyId }),
 
       completeStory: (storyId) => {
-        get().touchStreak()
+        get().recordAction(STREAK_DAILY_TARGET)
         set((state) =>
           state.completedStoryIds.includes(storyId)
             ? state
@@ -58,7 +82,7 @@ export const useProgressStore = create<ProgressStore>()(
       isStoryCompleted: (storyId) => get().completedStoryIds.includes(storyId),
 
       recordExerciseAttempt: (exerciseId, correct) => {
-        get().touchStreak()
+        get().recordAction()
         set((state) => {
           const prev = state.exerciseAttempts[exerciseId]
           const attempts: ProgressStateData['exerciseAttempts'] = {
@@ -77,7 +101,7 @@ export const useProgressStore = create<ProgressStore>()(
       },
 
       recordDrillResult: (storyId, drillType, correct) => {
-        get().touchStreak()
+        get().recordAction()
         if (!correct) return
         set((state) => {
           const forStory = state.drillMastery[storyId] ?? {}
@@ -91,7 +115,7 @@ export const useProgressStore = create<ProgressStore>()(
       },
 
       saveChallenge: (storyId, challengeId, answers, submitted) => {
-        get().touchStreak()
+        get().recordAction(submitted ? 5 : 1)
         set((state) => {
           const forStory = state.challenges[storyId] ?? {}
           return {
