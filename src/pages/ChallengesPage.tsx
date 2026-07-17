@@ -81,19 +81,67 @@ export function ChallengesPage() {
   )
 }
 
-const cardClass = 'rounded-2xl border border-teal-700/15 bg-white/60 p-5 dark:border-teal-100/15 dark:bg-ink-900/40'
+const cardClass = 'rounded-2xl border border-teal-700/15 bg-white/60 p-6 dark:border-teal-100/15 dark:bg-ink-900/40'
 const primaryBtn =
-  'rounded-full bg-teal-700 px-5 py-2 text-sm font-semibold text-parchment-50 transition-colors hover:bg-teal-600 dark:bg-teal-500 dark:text-ink-950'
+  'rounded-full bg-teal-700 px-5 py-2 text-sm font-semibold text-parchment-50 transition-colors hover:bg-teal-600 disabled:opacity-40 dark:bg-teal-500 dark:text-ink-950'
+const ghostBtn =
+  'rounded-full border border-teal-700/25 px-4 py-2 text-sm font-semibold text-teal-700 transition-colors hover:bg-teal-700/10 disabled:opacity-40 dark:border-teal-100/25 dark:text-teal-300'
+const revealBtn =
+  'rounded-full border border-ink-900/15 px-3 py-1 text-xs font-medium text-ink-700 transition-colors hover:border-gold-500/60 hover:bg-gold-200/20'
 const inputClass =
   'font-arabic w-full rounded-xl border border-teal-700/20 bg-parchment-50/70 px-3 py-2 text-xl leading-loose outline-none focus:border-teal-500 dark:border-teal-100/20 dark:bg-ink-950/40'
 
-function BackBar({ onExit, title }: { onExit: () => void; title: string }) {
+function ChallengeFrame({
+  title,
+  index,
+  total,
+  onExit,
+  onPrev,
+  onNext,
+  onSubmit,
+  children,
+}: {
+  title: string
+  index: number
+  total: number
+  onExit: () => void
+  onPrev: () => void
+  onNext: () => void
+  onSubmit: () => void
+  children: React.ReactNode
+}) {
+  const isLast = index === total - 1
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <button type="button" onClick={onExit} className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-        ← Save & back
-      </button>
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-600 dark:text-parchment-200/70">{title}</p>
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-4 flex items-center justify-between">
+        <button type="button" onClick={onExit} className="text-sm font-semibold text-teal-700 dark:text-teal-300">
+          ← Save & back
+        </button>
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-600 dark:text-parchment-200/70">
+          {title} · {index + 1} / {total}
+        </p>
+      </div>
+
+      <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-teal-700/10 dark:bg-teal-300/10">
+        <div className="h-full rounded-full bg-gold-500 transition-all" style={{ width: `${((index + 1) / total) * 100}%` }} />
+      </div>
+
+      {children}
+
+      <div className="mt-4 flex items-center justify-between">
+        <button type="button" onClick={onPrev} disabled={index === 0} className={ghostBtn}>
+          ‹ Previous
+        </button>
+        {isLast ? (
+          <button type="button" onClick={onSubmit} className={primaryBtn}>
+            Submit challenge
+          </button>
+        ) : (
+          <button type="button" onClick={onNext} className={primaryBtn}>
+            Next ›
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -112,56 +160,67 @@ function OwnSentences({ storyId, onExit }: { storyId: string; onExit: () => void
     [story],
   )
 
-  const [answers, setAnswers] = useState<string[]>(() => saved?.answers ?? keyWords.map(() => ''))
+  const [answers, setAnswers] = useState<string[]>(() => {
+    const base = keyWords.map(() => '')
+    saved?.answers?.forEach((a, i) => { if (i < base.length) base[i] = a })
+    return base
+  })
+  const [index, setIndex] = useState(0)
+  const [meaningShown, setMeaningShown] = useState(false)
 
-  const filled = answers.filter((a) => a.trim().length > 0).length
-
+  const word = keyWords[index]
+  const go = (next: number) => {
+    setIndex(next)
+    setMeaningShown(false)
+  }
   const save = (submitted: boolean) => {
-    saveChallenge(storyId, 'own-sentences', answers, submitted)
-    if (submitted) onExit()
+    saveChallenge(storyId, 'own-sentences', answers, submitted || (saved?.submitted ?? false))
+    onExit()
   }
 
   return (
-    <div>
-      <BackBar onExit={() => save(saved?.submitted ?? false)} title={`Your own sentences — ${filled}/${keyWords.length}`} />
-      <p className="mb-4 text-sm text-ink-600 dark:text-parchment-200/80">
-        Write one original Arabic sentence for each key word. Check any sentence against the rules in the{' '}
-        <Link to="/lab" className="font-medium text-teal-700 underline dark:text-teal-300">
-          Sentence Lab
-        </Link>
-        .
-      </p>
-      <div className="space-y-3">
-        {keyWords.map((w, i) => (
-          <div key={w.id} className={cardClass}>
-            <div className="mb-2 flex items-baseline justify-between gap-3">
-              <span className="text-xs text-ink-600 dark:text-parchment-200/70">
-                {i + 1}. {w.meaning}
-              </span>
-              <span className="font-arabic text-2xl text-ink-900 dark:text-parchment-50" dir="rtl">
-                {w.arabic}
-              </span>
-            </div>
-            <textarea
-              value={answers[i] ?? ''}
-              onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))}
-              dir="rtl"
-              rows={1}
-              placeholder="اكتب جملتك هنا..."
-              className={inputClass}
-            />
-          </div>
-        ))}
+    <ChallengeFrame
+      title="Your own sentences"
+      index={index}
+      total={keyWords.length}
+      onExit={() => save(false)}
+      onPrev={() => go(Math.max(0, index - 1))}
+      onNext={() => go(index + 1)}
+      onSubmit={() => save(true)}
+    >
+      <div className={cardClass}>
+        <p className="text-xs font-bold uppercase tracking-wide text-gold-600 dark:text-gold-300">
+          Write one original sentence using this word
+        </p>
+        <p className="font-arabic mt-3 text-right text-4xl leading-relaxed text-ink-900 dark:text-parchment-50" dir="rtl">
+          {word.arabic}
+        </p>
+        <div className="mt-2 flex justify-end">
+          {meaningShown ? (
+            <p className="text-xs text-ink-600 dark:text-parchment-200/70">{word.meaning}</p>
+          ) : (
+            <button type="button" onClick={() => setMeaningShown(true)} className={revealBtn}>
+              Show meaning
+            </button>
+          )}
+        </div>
+        <textarea
+          value={answers[index] ?? ''}
+          onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === index ? e.target.value : a)))}
+          dir="rtl"
+          rows={2}
+          placeholder="اكتب جملتك هنا..."
+          className={`${inputClass} mt-3`}
+        />
+        <p className="mt-2 text-xs text-ink-500 dark:text-parchment-200/50">
+          Tip: check your sentence in the{' '}
+          <Link to="/lab" className="font-medium text-teal-700 underline dark:text-teal-300">
+            Sentence Lab
+          </Link>{' '}
+          before moving on.
+        </p>
       </div>
-      <div className="sticky bottom-4 mt-6 flex justify-center gap-3">
-        <button type="button" onClick={() => save(false)} className="rounded-full border border-teal-700/30 bg-white/90 px-5 py-2 text-sm font-semibold text-teal-700 dark:border-teal-300/30 dark:bg-ink-900 dark:text-teal-300">
-          Save draft
-        </button>
-        <button type="button" onClick={() => save(true)} disabled={filled === 0} className={`${primaryBtn} disabled:opacity-40`}>
-          Submit ({filled}/{keyWords.length})
-        </button>
-      </div>
-    </div>
+    </ChallengeFrame>
   )
 }
 
@@ -175,65 +234,61 @@ function TranslateChallenge({ storyId, onExit }: { storyId: string; onExit: () =
     [story],
   )
 
-  const [answers, setAnswers] = useState<string[]>(() => saved?.answers ?? sentences.map(() => ''))
-  const [revealed, setRevealed] = useState<boolean[]>(() => sentences.map(() => false))
+  const [answers, setAnswers] = useState<string[]>(() => {
+    const base = sentences.map(() => '')
+    saved?.answers?.forEach((a, i) => { if (i < base.length) base[i] = a })
+    return base
+  })
+  const [index, setIndex] = useState(0)
+  const [revealed, setRevealed] = useState(false)
 
+  const seg = sentences[index]
+  const go = (next: number) => {
+    setIndex(next)
+    setRevealed(false)
+  }
   const save = (submitted: boolean) => {
-    saveChallenge(storyId, 'translate', answers, submitted)
-    if (submitted) onExit()
+    saveChallenge(storyId, 'translate', answers, submitted || (saved?.submitted ?? false))
+    onExit()
   }
 
-  const allRevealed = revealed.every(Boolean)
-
   return (
-    <div>
-      <BackBar onExit={() => save(saved?.submitted ?? false)} title="Translate into Arabic" />
-      <p className="mb-4 text-sm text-ink-600 dark:text-parchment-200/80">
-        Translate each sentence into Arabic (with harakat if you can), then reveal the model — it's the story's own
-        line — and compare honestly.
-      </p>
-      <div className="space-y-3">
-        {sentences.map((seg, i) => (
-          <div key={seg.id} className={cardClass}>
-            <p className="text-sm font-semibold text-ink-900 dark:text-parchment-50">
-              {i + 1}. {seg.english}
+    <ChallengeFrame
+      title="Translate into Arabic"
+      index={index}
+      total={sentences.length}
+      onExit={() => save(false)}
+      onPrev={() => go(Math.max(0, index - 1))}
+      onNext={() => go(index + 1)}
+      onSubmit={() => save(true)}
+    >
+      <div className={cardClass}>
+        <p className="text-xs font-bold uppercase tracking-wide text-gold-600 dark:text-gold-300">
+          Translate this sentence into Arabic
+        </p>
+        <p className="mt-3 text-xl font-semibold text-ink-900 dark:text-parchment-50">{seg.english}</p>
+        <textarea
+          value={answers[index] ?? ''}
+          onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === index ? e.target.value : a)))}
+          dir="rtl"
+          rows={2}
+          placeholder="اكتب الترجمة هنا..."
+          className={`${inputClass} mt-3`}
+        />
+        {!revealed ? (
+          <button type="button" onClick={() => setRevealed(true)} className={`${ghostBtn} mt-3`}>
+            Reveal model answer
+          </button>
+        ) : (
+          <div className="mt-3 rounded-xl border border-leaf-500/30 bg-leaf-100/60 p-4 text-right dark:bg-leaf-500/10">
+            <p className="font-arabic text-2xl text-ink-900 dark:text-parchment-50" dir="rtl">
+              {seg.arabic}
             </p>
-            <textarea
-              value={answers[i] ?? ''}
-              onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))}
-              dir="rtl"
-              rows={1}
-              placeholder="اكتب الترجمة هنا..."
-              className={`${inputClass} mt-2`}
-            />
-            {!revealed[i] ? (
-              <button
-                type="button"
-                onClick={() => setRevealed((prev) => prev.map((r, j) => (j === i ? true : r)))}
-                className="mt-2 rounded-full border border-teal-700/20 px-4 py-1.5 text-xs font-semibold text-teal-700 dark:border-teal-100/20 dark:text-teal-300"
-              >
-                Reveal model answer
-              </button>
-            ) : (
-              <div className="mt-2 rounded-xl border border-leaf-500/30 bg-leaf-100/60 p-3 text-right dark:bg-leaf-500/10">
-                <p className="font-arabic text-xl text-ink-900 dark:text-parchment-50" dir="rtl">
-                  {seg.arabic}
-                </p>
-                <p className="mt-0.5 text-xs italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>
-              </div>
-            )}
+            <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{seg.transliteration}</p>
           </div>
-        ))}
+        )}
       </div>
-      <div className="sticky bottom-4 mt-6 flex justify-center gap-3">
-        <button type="button" onClick={() => save(false)} className="rounded-full border border-teal-700/30 bg-white/90 px-5 py-2 text-sm font-semibold text-teal-700 dark:border-teal-300/30 dark:bg-ink-900 dark:text-teal-300">
-          Save draft
-        </button>
-        <button type="button" onClick={() => save(true)} disabled={!allRevealed} className={`${primaryBtn} disabled:opacity-40`}>
-          Submit
-        </button>
-      </div>
-    </div>
+    </ChallengeFrame>
   )
 }
 
@@ -242,64 +297,79 @@ function ComprehensionChallenge({ storyId, onExit }: { storyId: string; onExit: 
   const saveChallenge = useProgressStore((s) => s.saveChallenge)
   const items = comprehension[storyId] ?? []
 
-  const [answers, setAnswers] = useState<string[]>(() => saved?.answers ?? items.map(() => ''))
-  const [revealed, setRevealed] = useState<boolean[]>(() => items.map(() => false))
+  const [answers, setAnswers] = useState<string[]>(() => {
+    const base = items.map(() => '')
+    saved?.answers?.forEach((a, i) => { if (i < base.length) base[i] = a })
+    return base
+  })
+  const [index, setIndex] = useState(0)
+  const [helpShown, setHelpShown] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
+  const item = items[index]
+  if (!item) return null
+
+  const go = (next: number) => {
+    setIndex(next)
+    setHelpShown(false)
+    setRevealed(false)
+  }
   const save = (submitted: boolean) => {
-    saveChallenge(storyId, 'comprehension', answers, submitted)
-    if (submitted) onExit()
+    saveChallenge(storyId, 'comprehension', answers, submitted || (saved?.submitted ?? false))
+    onExit()
   }
 
   return (
-    <div>
-      <BackBar onExit={() => save(saved?.submitted ?? false)} title="Comprehension" />
-      <p className="mb-4 text-sm text-ink-600 dark:text-parchment-200/80">
-        Answer each question about the story in a full Arabic sentence, then reveal the model answer.
-      </p>
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <div key={i} className={cardClass}>
-            <p className="font-arabic text-right text-2xl leading-loose text-ink-900 dark:text-parchment-50" dir="rtl">
-              {item.questionArabic}
+    <ChallengeFrame
+      title="Comprehension"
+      index={index}
+      total={items.length}
+      onExit={() => save(false)}
+      onPrev={() => go(Math.max(0, index - 1))}
+      onNext={() => go(index + 1)}
+      onSubmit={() => save(true)}
+    >
+      <div className={cardClass}>
+        <p className="text-xs font-bold uppercase tracking-wide text-gold-600 dark:text-gold-300">
+          Answer in a full Arabic sentence
+        </p>
+        <p className="font-arabic mt-3 text-right text-3xl leading-loose text-ink-900 dark:text-parchment-50" dir="rtl">
+          {item.questionArabic}
+        </p>
+        <div className="mt-2 flex justify-end">
+          {helpShown ? (
+            <div className="text-right">
+              <p className="text-xs italic text-teal-700 dark:text-teal-300">{item.questionTransliteration}</p>
+              <p className="text-xs text-ink-600 dark:text-parchment-200/70">{item.questionEnglish}</p>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setHelpShown(true)} className={revealBtn}>
+              Show help
+            </button>
+          )}
+        </div>
+        <textarea
+          value={answers[index] ?? ''}
+          onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === index ? e.target.value : a)))}
+          dir="rtl"
+          rows={2}
+          placeholder="اكتب جوابك بجملة كاملة..."
+          className={`${inputClass} mt-3`}
+        />
+        {!revealed ? (
+          <button type="button" onClick={() => setRevealed(true)} className={`${ghostBtn} mt-3`}>
+            Reveal model answer
+          </button>
+        ) : (
+          <div className="mt-3 rounded-xl border border-leaf-500/30 bg-leaf-100/60 p-4 text-right dark:bg-leaf-500/10">
+            <p className="font-arabic text-2xl text-ink-900 dark:text-parchment-50" dir="rtl">
+              {item.modelArabic}
             </p>
-            <p className="mt-0.5 text-right text-xs italic text-teal-700 dark:text-teal-300">{item.questionTransliteration}</p>
-            <p className="mt-0.5 text-right text-xs text-ink-500 dark:text-parchment-200/50">{item.questionEnglish}</p>
-            <textarea
-              value={answers[i] ?? ''}
-              onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))}
-              dir="rtl"
-              rows={1}
-              placeholder="اكتب جوابك بجملة كاملة..."
-              className={`${inputClass} mt-2`}
-            />
-            {!revealed[i] ? (
-              <button
-                type="button"
-                onClick={() => setRevealed((prev) => prev.map((r, j) => (j === i ? true : r)))}
-                className="mt-2 rounded-full border border-teal-700/20 px-4 py-1.5 text-xs font-semibold text-teal-700 dark:border-teal-100/20 dark:text-teal-300"
-              >
-                Reveal model answer
-              </button>
-            ) : (
-              <div className="mt-2 rounded-xl border border-leaf-500/30 bg-leaf-100/60 p-3 text-right dark:bg-leaf-500/10">
-                <p className="font-arabic text-xl text-ink-900 dark:text-parchment-50" dir="rtl">
-                  {item.modelArabic}
-                </p>
-                <p className="mt-0.5 text-xs italic text-teal-700 dark:text-teal-300">{item.modelTransliteration}</p>
-                <p className="mt-0.5 text-xs text-ink-600 dark:text-parchment-200/70">{item.modelEnglish}</p>
-              </div>
-            )}
+            <p className="mt-1 text-xs italic text-teal-700 dark:text-teal-300">{item.modelTransliteration}</p>
+            <p className="mt-0.5 text-xs text-ink-600 dark:text-parchment-200/70">{item.modelEnglish}</p>
           </div>
-        ))}
+        )}
       </div>
-      <div className="sticky bottom-4 mt-6 flex justify-center gap-3">
-        <button type="button" onClick={() => save(false)} className="rounded-full border border-teal-700/30 bg-white/90 px-5 py-2 text-sm font-semibold text-teal-700 dark:border-teal-300/30 dark:bg-ink-900 dark:text-teal-300">
-          Save draft
-        </button>
-        <button type="button" onClick={() => save(true)} disabled={!revealed.every(Boolean)} className={`${primaryBtn} disabled:opacity-40`}>
-          Submit
-        </button>
-      </div>
-    </div>
+    </ChallengeFrame>
   )
 }
