@@ -106,6 +106,16 @@ h2 {
   box-sizing: border-box;
 }
 
+/* Tailwind v4 resets buttons to cursor: default — restore the pointer on
+   everything clickable so the UI always signals interactivity. */
+button:not(:disabled),
+[role='button']:not(:disabled),
+select:not(:disabled),
+summary,
+label:has(> input[type='checkbox']) {
+  cursor: pointer;
+}
+
 ::selection {
   background: var(--color-gold-300);
   color: var(--color-ink-950);

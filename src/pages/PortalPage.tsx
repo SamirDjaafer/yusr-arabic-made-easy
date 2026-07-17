@@ -4,6 +4,8 @@ import { useProgressStore, MASTERY_TARGET } from '../store/progressStore'
 import { getStoryById } from '../data/stories'
 import { scopedWords, scopedConceptIds } from '../lib/lessonScope'
 import { comprehension } from '../data/comprehension'
+import { useFlashcardStore } from '../store/flashcardStore'
+import { getStoryDeck } from '../lib/storyDecks'
 
 const DRILL_TYPES = ['change-one-word', 'true-false', 'vocab-translate']
 const CHALLENGE_IDS = ['own-sentences', 'translate', 'comprehension']
@@ -14,6 +16,7 @@ export function PortalPage() {
   const drillMastery = useProgressStore((s) => s.drillMastery)
   const challenges = useProgressStore((s) => s.challenges)
   const mistakeQueue = useProgressStore((s) => s.mistakeQueue)
+  const masteredCards = useFlashcardStore((s) => s.mastered)
 
   const story = getStoryById(currentStoryId)
   if (!story) return <Navigate to="/" replace />
@@ -53,7 +56,11 @@ export function PortalPage() {
       to: '/flashcards',
       icon: '🗂️',
       title: 'Memorise Vocab',
-      status: `Flashcards for this lesson's words, with spaced repetition`,
+      status: (() => {
+        const deck = getStoryDeck(story.id)
+        const done = deck.filter((c) => masteredCards[c.id]).length
+        return `${done}/${deck.length} cards mastered in this lesson's deck`
+      })(),
     },
     {
       to: '/vocab',

@@ -2,20 +2,18 @@ import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { FlashcardItem } from '../types'
 import { Flashcard } from './Flashcard'
-import { useFlashcardStore } from '../store/flashcardStore'
-import type { LeitnerRating } from '../lib/leitner'
+import { useFlashcardStore, type CardGrade } from '../store/flashcardStore'
 
-const RATINGS: { key: LeitnerRating; label: string; className: string }[] = [
-  { key: 'again', label: 'Again', className: 'bg-rose-500 hover:bg-rose-600' },
-  { key: 'hard', label: 'Hard', className: 'bg-gold-500 hover:bg-gold-600' },
-  { key: 'good', label: 'Good', className: 'bg-teal-600 hover:bg-teal-700' },
-  { key: 'easy', label: 'Easy', className: 'bg-leaf-500 hover:bg-leaf-600' },
+const RATINGS: { key: CardGrade; label: string; className: string }[] = [
+  { key: 'no-idea', label: 'No idea', className: 'bg-rose-500 hover:bg-rose-600 text-white' },
+  { key: 'nearly', label: 'Nearly got it', className: 'bg-gold-500 hover:bg-gold-600 text-ink-950' },
+  { key: 'got-it', label: 'Got it right!', className: 'bg-leaf-500 hover:bg-leaf-600 text-white' },
 ]
 
 export function FlashcardDeck({ cards, onDone }: { cards: FlashcardItem[]; onDone: () => void }) {
   const [index, setIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
-  const rate = useFlashcardStore((s) => s.rate)
+  const gradeCard = useFlashcardStore((s) => s.gradeCard)
 
   const card = cards[index]
   const isNewCategory = index === 0 || cards[index - 1].category !== card.category
@@ -32,8 +30,8 @@ export function FlashcardDeck({ cards, onDone }: { cards: FlashcardItem[]; onDon
     return { positionInCategory: position, categoryTotal: total }
   }, [cards, card.category, index])
 
-  const handleRate = (rating: LeitnerRating) => {
-    rate(card.id, rating)
+  const handleRate = (rating: CardGrade) => {
+    gradeCard(card.id, rating)
     if (index + 1 >= cards.length) {
       onDone()
     } else {
@@ -67,13 +65,13 @@ export function FlashcardDeck({ cards, onDone }: { cards: FlashcardItem[]; onDon
       <Flashcard card={card} flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
 
       {flipped ? (
-        <div className="mt-5 grid grid-cols-4 gap-2">
+        <div className="mt-5 grid grid-cols-3 gap-2">
           {RATINGS.map((r) => (
             <button
               key={r.key}
               type="button"
               onClick={() => handleRate(r.key)}
-              className={`rounded-xl px-2 py-2 text-xs font-semibold text-white transition-colors ${r.className}`}
+              className={`rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${r.className}`}
             >
               {r.label}
             </button>
