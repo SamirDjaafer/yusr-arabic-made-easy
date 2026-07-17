@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
-import { HomePage } from './pages/HomePage'
-import { StoriesPathPage } from './pages/StoriesPathPage'
+import { LessonSelectPage } from './pages/LessonSelectPage'
+import { PortalPage } from './pages/PortalPage'
 import { StoryPage } from './pages/StoryPage'
 import { FlashcardsPage } from './pages/FlashcardsPage'
 import { VocabBankPage } from './pages/VocabBankPage'
@@ -16,8 +16,9 @@ export default function App() {
     <BrowserRouter>
       <AppShell>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/stories" element={<StoriesPathPage />} />
+          <Route path="/" element={<LessonSelectPage />} />
+          <Route path="/portal" element={<PortalPage />} />
+          <Route path="/stories" element={<Navigate to="/" replace />} />
           <Route path="/stories/:storyId" element={<StoryPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/vocab" element={<VocabBankPage />} />

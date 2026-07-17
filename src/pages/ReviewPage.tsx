@@ -19,8 +19,8 @@ export function ReviewPage() {
         <p className="mt-1 text-sm text-ink-600 dark:text-parchment-200/80">
           Exercises you get wrong in a story land here so you can retry them later.
         </p>
-        <Link to="/stories" className="mt-4 inline-block rounded-full bg-teal-700 px-5 py-2 text-sm font-semibold text-parchment-50 dark:bg-teal-500 dark:text-ink-950">
-          Go to stories
+        <Link to="/portal" className="mt-4 inline-block rounded-full bg-teal-700 px-5 py-2 text-sm font-semibold text-parchment-50 dark:bg-teal-500 dark:text-ink-950">
+          Back to lesson portal
         </Link>
       </div>
     )

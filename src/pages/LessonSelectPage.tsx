@@ -1,26 +1,33 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { stories } from '../data/stories'
 import { useProgressStore } from '../store/progressStore'
 
-export function StoriesPathPage() {
+export function LessonSelectPage() {
+  const navigate = useNavigate()
   const completedStoryIds = useProgressStore((s) => s.completedStoryIds)
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const setCurrentStory = useProgressStore((s) => s.setCurrentStory)
 
-  // the "you are here" marker: first story not yet completed
   const currentIndex = stories.findIndex((s) => !completedStoryIds.includes(s.id))
   const reachedIndex = currentIndex === -1 ? stories.length - 1 : currentIndex
   const progressPct = stories.length > 1 ? (reachedIndex / (stories.length - 1)) * 100 : 0
 
+  const enter = (storyId: string) => {
+    setCurrentStory(storyId)
+    navigate('/portal')
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-3xl font-semibold text-ink-900">Your path</h1>
+      <h1 className="text-3xl font-semibold text-ink-900">Choose your lesson</h1>
       <p className="mt-1 text-sm text-ink-600">
-        Six stories, each building on the last — read them in order, or revisit any one.
+        Pick the story you're on — it opens that lesson's portal with its reading, exercises, challenges, vocab and
+        grammar.
       </p>
 
       <div className="relative mt-8">
         <div className="absolute bottom-8 left-6 top-8 w-px bg-ink-900/10" aria-hidden />
-        {/* gold fill showing how far along the path you've come */}
         <motion.div
           className="absolute left-6 top-8 w-px origin-top bg-gold-500"
           style={{ height: `calc((100% - 4rem) * ${progressPct / 100})` }}
@@ -33,7 +40,7 @@ export function StoriesPathPage() {
         <div className="space-y-4">
           {stories.map((story, i) => {
             const completed = completedStoryIds.includes(story.id)
-            const isCurrent = i === currentIndex
+            const isCurrent = story.id === currentStoryId
             return (
               <motion.div
                 key={story.id}
@@ -41,11 +48,9 @@ export function StoriesPathPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Link to={`/stories/${story.id}`} className="group relative flex items-start gap-4">
+                <button type="button" onClick={() => enter(story.id)} className="group relative flex w-full items-start gap-4 text-left">
                   <div className="relative z-10 mt-5 shrink-0">
-                    {isCurrent && (
-                      <span className="absolute inset-0 animate-ping rounded-full bg-gold-500/30" aria-hidden />
-                    )}
+                    {isCurrent && <span className="absolute inset-0 animate-ping rounded-full bg-gold-500/30" aria-hidden />}
                     <div
                       className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 text-base font-semibold transition-colors ${
                         completed
@@ -59,12 +64,17 @@ export function StoriesPathPage() {
                     </div>
                   </div>
 
-                  <div className="flex-1 rounded-2xl border border-ink-900/10 bg-white p-6 shadow-sm transition group-hover:-translate-y-0.5 group-hover:border-gold-500/50 group-hover:shadow-md">
+                  <div
+                    className={`flex-1 rounded-2xl border bg-white p-6 shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md ${
+                      isCurrent ? 'border-gold-500/60' : 'border-ink-900/10 group-hover:border-gold-500/50'
+                    }`}
+                  >
                     <div className="flex items-start justify-between gap-5">
                       <div className="min-w-0">
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-gold-600">
-                          Story {i + 1}
+                          Lesson {i + 1}
                           {completed && ' · completed'}
+                          {isCurrent && ' · your lesson'}
                         </p>
                         <h2 className="mt-1 text-2xl font-semibold leading-snug text-ink-900">{story.title}</h2>
                       </div>
@@ -73,8 +83,11 @@ export function StoriesPathPage() {
                       </p>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink-600">{story.description}</p>
+                    <p className="mt-3 text-xs font-semibold text-gold-600 opacity-0 transition-opacity group-hover:opacity-100">
+                      Enter lesson portal →
+                    </p>
                   </div>
-                </Link>
+                </button>
               </motion.div>
             )
           })}

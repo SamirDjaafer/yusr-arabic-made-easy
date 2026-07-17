@@ -102,10 +102,10 @@ export function StoryReader({ story }: { story: Story }) {
               </p>
               <div className="mt-5 flex justify-center gap-3">
                 <Link
-                  to="/stories"
+                  to="/portal"
                   className="rounded-full bg-teal-700 px-5 py-2 text-sm font-semibold text-parchment-50 hover:bg-teal-600 dark:bg-teal-500 dark:text-ink-950 dark:hover:bg-teal-400"
                 >
-                  Back to stories
+                  Back to lesson portal
                 </Link>
                 <Link
                   to="/flashcards"
