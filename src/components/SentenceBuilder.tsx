@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { sentenceBuilderSet, type BuilderSentence } from '../lib/sentenceBuilderSet'
+import { useProgressStore } from '../store/progressStore'
+import { storiesUpTo } from '../lib/lessonScope'
 
 interface Tile {
   word: string
@@ -14,9 +16,16 @@ function shuffledTiles(sentence: BuilderSentence): Tile[] {
 }
 
 export function SentenceBuilder() {
-  const [order] = useState<number[]>(() => sentenceBuilderSet.map((_, i) => i).sort(() => Math.random() - 0.5))
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const pool = useMemo(() => {
+    const allowed = new Set(storiesUpTo(currentStoryId).map((s) => s.id))
+    const scoped = sentenceBuilderSet.filter((s) => allowed.has(s.storyId))
+    return scoped.length > 0 ? scoped : sentenceBuilderSet
+  }, [currentStoryId])
+  const [order] = useState<number[]>(() => pool.map((_, i) => i).sort(() => Math.random() - 0.5))
+  const sentencePool = pool
   const [pos, setPos] = useState(0)
-  const sentence = sentenceBuilderSet[order[pos]]
+  const sentence = sentencePool[order[pos] % sentencePool.length]
 
   const [available, setAvailable] = useState<Tile[]>(() => shuffledTiles(sentence))
   const [placed, setPlaced] = useState<Tile[]>([])
@@ -43,7 +52,7 @@ export function SentenceBuilder() {
   const nextSentence = () => {
     const next = (pos + 1) % order.length
     setPos(next)
-    const nextSentenceData = sentenceBuilderSet[order[next]]
+    const nextSentenceData = sentencePool[order[next] % sentencePool.length]
     setAvailable(shuffledTiles(nextSentenceData))
     setPlaced([])
     setResult(null)

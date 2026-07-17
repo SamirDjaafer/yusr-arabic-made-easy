@@ -7,7 +7,7 @@ export const story05: Story = {
   titleArabic: 'مُحَاجَّةُ إِبْرَاهِيمَ',
   description: 'The people return, find their idols broken, and confront Ibrahim — packed with past-tense verbs in every person: I, we, you, they.',
   unlockRequires: 'story-04',
-  grammarConceptIds: ['verb-prefixes-suffixes', 'negation'],
+  grammarConceptIds: ['verb-prefixes-suffixes', 'negation', 'future-tense'],
   newWordIds: ['rajaa', 'samia', 'qabila', 'asbaha', 'aduww', 'waliyy', 'yaqin', 'haqq'],
   segments: [
     {

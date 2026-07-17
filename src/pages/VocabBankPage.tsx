@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react'
 import { words } from '../data/words'
 import type { PartOfSpeech } from '../types'
 import { ArabicText } from '../components/ArabicText'
+import { useProgressStore } from '../store/progressStore'
+import { isWordInScope } from '../lib/lessonScope'
+import { getStoryById } from '../data/stories'
 
 const POS_LABELS: Record<PartOfSpeech, string> = {
   noun: 'Noun',
@@ -37,9 +40,13 @@ export function VocabBankPage() {
   const [tierFilter, setTierFilter] = useState<0 | 1 | 2 | 3>(0)
   const [posFilter, setPosFilter] = useState<PartOfSpeech | 'all'>('all')
   const [query, setQuery] = useState('')
+  const [showAll, setShowAll] = useState(false)
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const currentStory = getStoryById(currentStoryId)
 
   const filtered = useMemo(() => {
     return baseWords.filter((w) => {
+      if (!showAll && !isWordInScope(w, currentStoryId)) return false
       if (tierFilter !== 0 && w.frequencyTier !== tierFilter) return false
       if (posFilter !== 'all' && w.partOfSpeech !== posFilter) return false
       if (query.trim()) {
@@ -50,15 +57,24 @@ export function VocabBankPage() {
       }
       return true
     })
-  }, [tierFilter, posFilter, query])
+  }, [tierFilter, posFilter, query, showAll, currentStoryId])
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-ink-900 dark:text-parchment-50">Vocabulary bank</h1>
       <p className="mt-1 text-sm text-ink-600 dark:text-parchment-200/80">
-        {baseWords.length} curated high-frequency words, shown in their dictionary form — for every conjugation and
-        suffix of a word, see the Word Forms Explorer on the Grammar page.
+        {showAll
+          ? `All ${baseWords.length} words across every lesson, in dictionary form.`
+          : `Words for lessons 1–${currentStory?.order ?? 1} (your current lesson), in dictionary form.`}{' '}
+        For every conjugation and suffix of a word, see the Word Forms Explorer on the Grammar page.
       </p>
+      <button
+        type="button"
+        onClick={() => setShowAll((v) => !v)}
+        className="mt-2 rounded-full border border-teal-700/20 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-700/10 dark:border-teal-100/20 dark:text-teal-300"
+      >
+        {showAll ? '← Back to my lesson’s words' : 'Show all lessons’ words'}
+      </button>
 
       <div className="mt-4 flex flex-wrap gap-3">
         <input

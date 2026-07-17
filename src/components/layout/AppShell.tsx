@@ -2,16 +2,38 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProgressStore } from '../../store/progressStore'
+import { stories } from '../../data/stories'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home', end: true },
   { to: '/stories', label: 'Stories' },
+  { to: '/exercises', label: 'Exercises' },
+  { to: '/challenges', label: 'Challenges' },
   { to: '/vocab', label: 'Vocab' },
   { to: '/flashcards', label: 'Flashcards' },
   { to: '/grammar', label: 'Grammar' },
   { to: '/review', label: 'Review' },
-  { to: '/lab', label: 'Sentence Lab' },
+  { to: '/lab', label: 'Sentences' },
 ]
+
+function LessonPicker({ className = '' }: { className?: string }) {
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const setCurrentStory = useProgressStore((s) => s.setCurrentStory)
+  return (
+    <select
+      value={currentStoryId}
+      onChange={(e) => setCurrentStory(e.target.value)}
+      title="The lesson you're on — scopes vocab, grammar, exercises and challenges"
+      className={`max-w-full cursor-pointer rounded-full border border-gold-500/40 bg-transparent px-3 py-1.5 text-sm font-semibold text-gold-400 outline-none ${className}`}
+    >
+      {stories.map((s) => (
+        <option key={s.id} value={s.id} className="bg-ink-900 text-parchment-50">
+          Lesson {s.order}: {s.title}
+        </option>
+      ))}
+    </select>
+  )
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const streak = useProgressStore((s) => s.streak)
@@ -36,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </NavLink>
 
           {/* desktop nav */}
-          <nav className="hidden flex-1 items-center justify-center gap-1 sm:flex md:gap-2">
+          <nav className="hidden flex-1 flex-wrap items-center justify-center gap-1 sm:flex md:gap-1.5">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
@@ -54,6 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
+            <LessonPicker className="hidden lg:block" />
             <div
               className="flex items-center gap-1.5 rounded-full bg-gold-500/15 px-3 py-1.5 text-sm font-semibold text-gold-400"
               title="Daily streak"
@@ -99,6 +122,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="overflow-hidden border-t border-white/10 sm:hidden"
             >
               <div className="space-y-1 px-4 pb-4 pt-2">
+                <div className="pb-2">
+                  <LessonPicker className="w-full" />
+                </div>
                 {NAV_ITEMS.map((item) => (
                   <NavLink
                     key={item.to}

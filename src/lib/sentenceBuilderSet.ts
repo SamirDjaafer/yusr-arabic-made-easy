@@ -5,6 +5,8 @@
 
 export interface BuilderSentence {
   id: string
+  /** the story this sentence belongs to — the lab only rotates sentences from lessons ≤ your current one */
+  storyId: string
   tiles: string[]
   correctOrder: string[]
   englishGloss: string
@@ -14,6 +16,7 @@ export interface BuilderSentence {
 export const sentenceBuilderSet: BuilderSentence[] = [
   {
     id: 'sb-1',
+    storyId: 'story-01',
     tiles: ['مُشْرِكًا', 'هَذَا الرَّجُلُ', 'كَانَ'],
     correctOrder: ['كَانَ', 'هَذَا الرَّجُلُ', 'مُشْرِكًا'],
     englishGloss: 'This man was a polytheist.',
@@ -21,6 +24,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-2',
+    storyId: 'story-02',
     tiles: ['الْأَصْنَامَ', 'لَمْ يَعْبُدْ', 'إِبْرَاهِيمُ'],
     correctOrder: ['لَمْ يَعْبُدْ', 'إِبْرَاهِيمُ', 'الْأَصْنَامَ'],
     englishGloss: 'Ibrahim did not worship the idols.',
@@ -28,6 +32,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-3',
+    storyId: 'story-03',
     tiles: ['وَحْدَهُ', 'اللَّهَ', 'نَعْبُدُ', 'نَحْنُ'],
     correctOrder: ['نَحْنُ', 'نَعْبُدُ', 'اللَّهَ', 'وَحْدَهُ'],
     englishGloss: 'We worship Allah alone.',
@@ -35,6 +40,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-4',
+    storyId: 'story-04',
     tiles: ['الْأَصْنَامَ', 'إِبْرَاهِيمُ', 'كَسَرَ'],
     correctOrder: ['كَسَرَ', 'إِبْرَاهِيمُ', 'الْأَصْنَامَ'],
     englishGloss: 'Ibrahim broke the idols.',
@@ -42,6 +48,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-5',
+    storyId: 'story-05',
     tiles: ['هَذَا', 'مَنْ فَعَلَ', 'قَالُوا'],
     correctOrder: ['قَالُوا', 'مَنْ فَعَلَ', 'هَذَا'],
     englishGloss: 'They said: who did this?',
@@ -49,6 +56,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-6',
+    storyId: 'story-03',
     tiles: ['يُؤْمِنُونَ بِهِ', 'مَعَ الَّذِينَ', 'وَاللَّهُ'],
     correctOrder: ['وَاللَّهُ', 'مَعَ الَّذِينَ', 'يُؤْمِنُونَ بِهِ'],
     englishGloss: 'And Allah is with those who believe in Him.',
@@ -56,6 +64,7 @@ export const sentenceBuilderSet: BuilderSentence[] = [
   },
   {
     id: 'sb-7',
+    storyId: 'story-03',
     tiles: ['وَحْدَهُ', 'اللَّهَ', 'نَعْبُدُ', 'الْمُسْلِمُونَ', 'نَحْنُ'],
     correctOrder: ['نَحْنُ', 'الْمُسْلِمُونَ', 'نَعْبُدُ', 'اللَّهَ', 'وَحْدَهُ'],
     englishGloss: 'We, the Muslims, worship Allah alone.',

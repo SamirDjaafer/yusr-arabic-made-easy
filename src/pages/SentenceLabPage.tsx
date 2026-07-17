@@ -4,21 +4,26 @@ import { words } from '../data/words'
 import { grammarConcepts } from '../data/grammar'
 import { checkSentence, type CheckResult } from '../lib/sentenceChecker'
 import { SentenceBuilder } from '../components/SentenceBuilder'
+import { useProgressStore } from '../store/progressStore'
+import { isWordInScope, scopedConceptIds } from '../lib/lessonScope'
 
 export function SentenceLabPage() {
   const [input, setInput] = useState('')
   const [result, setResult] = useState<CheckResult | null>(null)
   const [referenceOpen, setReferenceOpen] = useState(false)
 
+  const currentStoryId = useProgressStore((st) => st.currentStoryId)
+
   const wordsByPos = useMemo(() => {
     const groups = new Map<string, typeof words>()
     for (const w of words) {
+      if (!isWordInScope(w, currentStoryId)) continue
       const list = groups.get(w.partOfSpeech) ?? []
       list.push(w)
       groups.set(w.partOfSpeech, list)
     }
     return groups
-  }, [])
+  }, [currentStoryId])
 
   const handleCheck = () => {
     setResult(checkSentence(input))
@@ -55,7 +60,7 @@ export function SentenceLabPage() {
       </p>
 
       <section className="mt-6 rounded-2xl border border-teal-700/10 bg-white/60 p-5 dark:border-teal-100/10 dark:bg-ink-900/40">
-        <SentenceBuilder />
+        <SentenceBuilder key={currentStoryId} />
       </section>
 
       <section className="mt-6 rounded-2xl border border-teal-700/10 bg-white/60 p-5 dark:border-teal-100/10 dark:bg-ink-900/40">
@@ -170,7 +175,7 @@ export function SentenceLabPage() {
               .
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {grammarConcepts.map((c) => (
+              {grammarConcepts.filter((c) => scopedConceptIds(currentStoryId).has(c.id)).map((c) => (
                 <div key={c.id} className="rounded-xl bg-parchment-50/70 p-3 dark:bg-ink-950/40">
                   <p className="text-sm font-semibold text-ink-900 dark:text-parchment-50">{c.title}</p>
                   <div className="mt-2 flex flex-wrap justify-end gap-2" dir="rtl">

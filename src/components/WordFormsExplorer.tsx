@@ -8,6 +8,8 @@ import {
   getVerbPairs,
   type ExplorerCategory,
 } from '../lib/conjugator'
+import { useProgressStore } from '../store/progressStore'
+import { isWordInScope, scopedRoots } from '../lib/lessonScope'
 
 function VerbCell({ row }: { row: ParadigmRow | undefined }) {
   return (
@@ -37,15 +39,28 @@ const VIEWS = Object.keys(VIEW_LABELS) as ExplorerView[]
 
 export function WordFormsExplorer() {
   const [view, setView] = useState<ExplorerView>('verbs-both')
+  const [allLessons, setAllLessons] = useState(false)
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
 
-  const verbPairs = useMemo(() => getVerbPairs(), [])
-  const eligibleWords = useMemo(() => (view === 'verbs-both' ? [] : getEligibleWords(view)), [view])
+  const verbPairs = useMemo(() => {
+    const pairs = getVerbPairs()
+    if (allLessons) return pairs
+    const roots = scopedRoots(currentStoryId)
+    return pairs.filter((p) => roots.has(p.id))
+  }, [allLessons, currentStoryId])
+
+  const eligibleWords = useMemo(() => {
+    if (view === 'verbs-both') return []
+    const all = getEligibleWords(view)
+    if (allLessons) return all
+    return all.filter((w) => isWordInScope(w, currentStoryId))
+  }, [view, allLessons, currentStoryId])
 
   const [selectionId, setSelectionId] = useState<string>(() => verbPairs[0]?.id ?? '')
 
   const changeView = (next: ExplorerView) => {
     setView(next)
-    setSelectionId(next === 'verbs-both' ? (getVerbPairs()[0]?.id ?? '') : (getEligibleWords(next)[0]?.id ?? ''))
+    setSelectionId('')
   }
 
   const selectedPair = view === 'verbs-both' ? (verbPairs.find((p) => p.id === selectionId) ?? verbPairs[0]) : null
@@ -85,7 +100,8 @@ export function WordFormsExplorer() {
               </option>
             ))}
           </select>
-        ) : (
+        ) : null}
+        {view === 'verbs-both' ? null : (
           <select
             value={selectedWord?.id ?? ''}
             onChange={(e) => setSelectionId(e.target.value)}
@@ -98,6 +114,11 @@ export function WordFormsExplorer() {
             ))}
           </select>
         )}
+
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-600 dark:text-parchment-200/70">
+          <input type="checkbox" checked={allLessons} onChange={(e) => setAllLessons(e.target.checked)} />
+          all lessons
+        </label>
       </div>
 
       {view === 'verbs-both' && selectedPair && (

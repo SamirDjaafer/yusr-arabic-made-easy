@@ -7,7 +7,7 @@ export const story03: Story = {
   titleArabic: 'التَّوْحِيدُ',
   description: 'Ibrahim declares his religion — including a direct quote from Sūrat al-Kāfirūn — and you\'ll see every negation particle at work together.',
   unlockRequires: 'story-02',
-  grammarConceptIds: ['negation', 'verb-prefixes-suffixes'],
+  grammarConceptIds: ['negation', 'verb-prefixes-suffixes', 'active-participle'],
   newWordIds: ['tawhid', 'kufr', 'kafirun', 'ilah', 'laysa', 'muslim', 'ilm', 'hal', 'mithlu', 'aabid', 'qul', 'ana-abudu', 'antum-tabuduna', 'nahnu-nabudu', 'rabbuna', 'dinukum'],
   segments: [
     {

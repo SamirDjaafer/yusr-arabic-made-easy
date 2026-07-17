@@ -6,7 +6,7 @@ export const story01: Story = {
   title: 'Azar and the Idols',
   titleArabic: 'آزَرُ وَالْأَصْنَامُ',
   description: 'Azar and the idols worshipped in his village — learn how to attach a pronoun onto a noun to show possession.',
-  grammarConceptIds: ['possessive-suffixes', 'case-endings'],
+  grammarConceptIds: ['definite-article', 'possessive-suffixes', 'case-endings'],
   newWordIds: ['kana', 'rajul', 'kathir', 'hadha', 'sakana', 'fi', 'qaryah', 'ism', 'azar', 'mushrik', 'maa', 'an-nas', 'haulai', 'hadhihi', 'sanam', 'abada', 'sajada', 'ibadah', 'allah'],
   segments: [
     {

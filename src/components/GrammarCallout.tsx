@@ -1,9 +1,29 @@
+import { Link } from 'react-router-dom'
 import { getGrammarConcept } from '../data/grammar'
+import type { Paradigm } from '../types'
 import { ArabicText } from './ArabicText'
 
-export function GrammarCallout({ grammarId }: { grammarId: string }) {
+interface GrammarCalloutProps {
+  grammarId: string
+  /** Inside stories: keep it short — at most one noun table and one verb table,
+      two examples, and a link to the full Grammar page. Full mode shows everything. */
+  compact?: boolean
+}
+
+function compactParadigms(paradigms: Paradigm[]): Paradigm[] {
+  const nounish = paradigms.find((p) => p.kind === 'noun-suffix' || p.kind === 'case')
+  const verbish = paradigms.find((p) => p.kind?.startsWith('verb-'))
+  const picked = [nounish, verbish].filter((p): p is Paradigm => Boolean(p))
+  // concepts whose tables aren't noun/verb shaped (demonstratives etc.): just take the first
+  return picked.length > 0 ? picked : paradigms.slice(0, 1)
+}
+
+export function GrammarCallout({ grammarId, compact = false }: GrammarCalloutProps) {
   const concept = getGrammarConcept(grammarId)
   if (!concept) return null
+
+  const examples = compact ? concept.examples.slice(0, 2) : concept.examples
+  const paradigms = concept.paradigms ? (compact ? compactParadigms(concept.paradigms) : concept.paradigms) : []
 
   return (
     <div className="rounded-2xl border border-gold-400/40 bg-gold-200/30 p-5 dark:border-gold-500/30 dark:bg-gold-700/10">
@@ -18,16 +38,16 @@ export function GrammarCallout({ grammarId }: { grammarId: string }) {
         ))}
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {concept.examples.map((ex, i) => (
+        {examples.map((ex, i) => (
           <div key={i} className="rounded-lg bg-parchment-50/70 p-3 dark:bg-ink-900/50">
             <ArabicText arabic={ex.arabic} transliteration={ex.transliteration} english={ex.gloss} size="md" />
           </div>
         ))}
       </div>
 
-      {concept.paradigms && concept.paradigms.length > 0 && (
+      {paradigms.length > 0 && (
         <div className="mt-5 space-y-4">
-          {concept.paradigms.map((paradigm, pi) => (
+          {paradigms.map((paradigm, pi) => (
             <div key={pi} className="rounded-xl border border-teal-700/15 bg-parchment-50/60 p-3 dark:border-teal-100/15 dark:bg-ink-950/30">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-teal-700 dark:text-teal-300">{paradigm.title}</p>
               <div className="overflow-x-auto">
@@ -51,6 +71,14 @@ export function GrammarCallout({ grammarId }: { grammarId: string }) {
             </div>
           ))}
         </div>
+      )}
+
+      {compact && (
+        <p className="mt-3 text-xs">
+          <Link to="/grammar" className="font-medium text-gold-700 underline decoration-gold-500/50 underline-offset-2 dark:text-gold-300">
+            Full tables for every word → Grammar page
+          </Link>
+        </p>
       )}
     </div>
   )

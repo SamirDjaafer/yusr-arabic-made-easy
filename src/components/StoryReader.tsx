@@ -75,7 +75,7 @@ export function StoryReader({ story }: { story: Story }) {
 
           {step.kind === 'segment' && step.segment.kind === 'grammar-tip' && (
             <div className="space-y-4">
-              <GrammarCallout grammarId={step.segment.grammarId} />
+              <GrammarCallout grammarId={step.segment.grammarId} compact />
               <ContinueButton onClick={goNext} />
             </div>
           )}

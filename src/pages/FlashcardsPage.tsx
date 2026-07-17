@@ -4,6 +4,8 @@ import { stories } from '../data/stories'
 import { getStoryDeck } from '../lib/storyDecks'
 import { useDueWords } from '../hooks/useLeitner'
 import { FlashcardDeck } from '../components/FlashcardDeck'
+import { useProgressStore } from '../store/progressStore'
+import { isWordInScope } from '../lib/lessonScope'
 import type { FlashcardItem } from '../types'
 
 const MAX_PICK_WORDS = 5
@@ -13,6 +15,8 @@ export function FlashcardsPage() {
   const [phase, setPhase] = useState<'choose' | 'session' | 'done'>('choose')
   const [activeDeck, setActiveDeck] = useState<FlashcardItem[]>([])
 
+  const currentStoryId = useProgressStore((s) => s.currentStoryId)
+  const pickableWords = words.filter((w) => isWordInScope(w, currentStoryId))
   const dueWords = useDueWords(MAX_PICK_WORDS)
   const [selected, setSelected] = useState<string[]>(() => dueWords.map((w) => w.id))
 
@@ -92,15 +96,23 @@ export function FlashcardsPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {stories.map((story) => {
             const deckSize = getStoryDeck(story.id).length
+            const isCurrent = story.id === currentStoryId
             return (
               <button
                 key={story.id}
                 type="button"
                 onClick={() => startStoryDeck(story.id)}
-                className="rounded-2xl border border-teal-700/15 bg-white/60 p-4 text-left transition-colors hover:border-teal-500/40 dark:border-teal-100/15 dark:bg-ink-900/40"
+                className={`rounded-2xl border p-4 text-left transition-colors ${
+                  isCurrent
+                    ? 'border-gold-500/60 bg-gold-200/20 hover:border-gold-500 dark:border-gold-500/40 dark:bg-gold-700/10'
+                    : 'border-teal-700/15 bg-white/60 hover:border-teal-500/40 dark:border-teal-100/15 dark:bg-ink-900/40'
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Story {story.order}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">
+                    Story {story.order}
+                    {isCurrent && ' · your lesson'}
+                  </p>
                   <span aria-hidden>🗂️</span>
                 </div>
                 <p className="mt-0.5 font-semibold text-ink-900 dark:text-parchment-50">{story.title}</p>
@@ -117,7 +129,7 @@ export function FlashcardsPage() {
             Pick up to {MAX_PICK_WORDS} words to drill. Words due for review are pre-selected.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {words.map((w) => {
+            {pickableWords.map((w) => {
               const isSelected = selected.includes(w.id)
               const disabled = !isSelected && selected.length >= MAX_PICK_WORDS
               return (

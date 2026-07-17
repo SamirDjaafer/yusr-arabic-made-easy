@@ -1,0 +1,268 @@
+// Comprehension questions for each story — the student answers in a full
+// Arabic sentence, then reveals a model answer (drawn from the story's own
+// sentences) and grades themselves. Mirrors the reference platform's
+// "Comprehension" challenge.
+
+export interface ComprehensionItem {
+  questionArabic: string
+  questionTransliteration: string
+  questionEnglish: string
+  modelArabic: string
+  modelTransliteration: string
+  modelEnglish: string
+}
+
+export const comprehension: Record<string, ComprehensionItem[]> = {
+  'story-01': [
+    {
+      questionArabic: 'مَنْ كَانَ يَسْكُنُ فِي الْقَرْيَةِ؟',
+      questionTransliteration: 'man kāna yaskunu fī l-qaryati?',
+      questionEnglish: 'Who used to live in the village?',
+      modelArabic: 'كَانَ آزَرُ يَسْكُنُ فِي الْقَرْيَةِ مَعَ الْمُشْرِكِينَ',
+      modelTransliteration: "kāna Āzaru yaskunu fī l-qaryati ma'a l-mushrikīna",
+      modelEnglish: 'Azar used to live in the village with the polytheists.',
+    },
+    {
+      questionArabic: 'مَاذَا كَانَ النَّاسُ يَعْبُدُونَ؟',
+      questionTransliteration: "mādhā kāna n-nāsu ya'budūna?",
+      questionEnglish: 'What did the people use to worship?',
+      modelArabic: 'كَانَ النَّاسُ يَعْبُدُونَ الْأَصْنَامَ',
+      modelTransliteration: "kāna n-nāsu ya'budūna l-aṣnāma",
+      modelEnglish: 'The people used to worship the idols.',
+    },
+    {
+      questionArabic: 'هَلْ كَانَ آزَرُ مُسْلِمًا؟',
+      questionTransliteration: 'hal kāna Āzaru musliman?',
+      questionEnglish: 'Was Azar a Muslim?',
+      modelArabic: 'لَا، كَانَ آزَرُ مُشْرِكًا',
+      modelTransliteration: 'lā, kāna Āzaru mushrikan',
+      modelEnglish: 'No, Azar was a polytheist.',
+    },
+    {
+      questionArabic: 'لِمَنِ الْعِبَادَةُ؟',
+      questionTransliteration: "limani l-'ibādatu?",
+      questionEnglish: 'To whom does worship belong?',
+      modelArabic: 'الْعِبَادَةُ لِلَّهِ فَقَطْ',
+      modelTransliteration: "al-'ibādatu lillāhi faqaṭ",
+      modelEnglish: 'Worship is for Allah alone.',
+    },
+    {
+      questionArabic: 'مَاذَا كَانَ فِي الْقَرْيَةِ؟',
+      questionTransliteration: 'mādhā kāna fī l-qaryati?',
+      questionEnglish: 'What was in the village?',
+      modelArabic: 'كَانَ فِي الْقَرْيَةِ أَصْنَامٌ كَثِيرَةٌ جِدًّا',
+      modelTransliteration: 'kāna fī l-qaryati aṣnāmun kathīratun jiddan',
+      modelEnglish: 'In the village there were very many idols.',
+    },
+  ],
+  'story-02': [
+    {
+      questionArabic: 'مَعَ مَنْ كَانَ إِبْرَاهِيمُ يَسْكُنُ؟',
+      questionTransliteration: "ma'a man kāna Ibrāhīmu yaskunu?",
+      questionEnglish: 'With whom did Ibrahim live?',
+      modelArabic: 'كَانَ إِبْرَاهِيمُ يَسْكُنُ مَعَ أَبِيهِ فِي الْقَرْيَةِ',
+      modelTransliteration: "kāna Ibrāhīmu yaskunu ma'a abīhi fī l-qaryati",
+      modelEnglish: 'Ibrahim lived with his father in the village.',
+    },
+    {
+      questionArabic: 'مَاذَا كَانَ إِبْرَاهِيمُ يَرَى كُلَّ يَوْمٍ؟',
+      questionTransliteration: 'mādhā kāna Ibrāhīmu yarā kulla yawmin?',
+      questionEnglish: 'What did Ibrahim see every day?',
+      modelArabic: 'كَانَ يَرَى النَّاسَ يَعْبُدُونَ الْأَصْنَامَ وَيَسْجُدُونَ لَهَا',
+      modelTransliteration: "kāna yarā n-nāsa ya'budūna l-aṣnāma wa yasjudūna lahā",
+      modelEnglish: 'He saw the people worshipping the idols and prostrating to them.',
+    },
+    {
+      questionArabic: 'هَلْ عَبَدَ إِبْرَاهِيمُ الْأَصْنَامَ؟',
+      questionTransliteration: "hal 'abada Ibrāhīmu l-aṣnāma?",
+      questionEnglish: 'Did Ibrahim worship the idols?',
+      modelArabic: 'لَا، لَمْ يَعْبُدْ إِبْرَاهِيمُ الْأَصْنَامَ',
+      modelTransliteration: "lā, lam ya'bud Ibrāhīmu l-aṣnāma",
+      modelEnglish: 'No, Ibrahim did not worship the idols.',
+    },
+    {
+      questionArabic: 'مَاذَا كَانَ إِبْرَاهِيمُ يَعْرِفُ عَنْ تِلْكَ الْعِبَادَةِ؟',
+      questionTransliteration: "mādhā kāna Ibrāhīmu ya'rifu 'an tilka l-'ibādati?",
+      questionEnglish: 'What did Ibrahim know about that worship?',
+      modelArabic: 'كَانَ يَعْرِفُ أَنَّ تِلْكَ الْعِبَادَةَ سَيِّئَةٌ',
+      modelTransliteration: "kāna ya'rifu anna tilka l-'ibādata sayyi'atun",
+      modelEnglish: 'He knew that that worship was evil.',
+    },
+    {
+      questionArabic: 'مِنْ أَيِّ شَيْءٍ الْأَصْنَامُ؟',
+      questionTransliteration: "min ayyi shay'in il-aṣnāmu?",
+      questionEnglish: 'What are the idols made of?',
+      modelArabic: 'الْأَصْنَامُ مِنَ الْحِجَارَةِ',
+      modelTransliteration: 'al-aṣnāmu mina l-ḥijārati',
+      modelEnglish: 'The idols are made of stones.',
+    },
+  ],
+  'story-03': [
+    {
+      questionArabic: 'مَاذَا قَالَ إِبْرَاهِيمُ لِلْكَافِرِينَ؟',
+      questionTransliteration: 'mādhā qāla Ibrāhīmu lil-kāfirīna?',
+      questionEnglish: 'What did Ibrahim say to the disbelievers?',
+      modelArabic: 'قَالَ: لَا أَعْبُدُ مَا تَعْبُدُونَ',
+      modelTransliteration: "qāla: lā a'budu mā ta'budūna",
+      modelEnglish: 'He said: I do not worship what you worship.',
+    },
+    {
+      questionArabic: 'مَنْ يَعْبُدُ إِبْرَاهِيمُ؟',
+      questionTransliteration: "man ya'budu Ibrāhīmu?",
+      questionEnglish: 'Whom does Ibrahim worship?',
+      modelArabic: 'يَعْبُدُ إِبْرَاهِيمُ اللَّهَ وَحْدَهُ',
+      modelTransliteration: "ya'budu Ibrāhīmu llāha waḥdahu",
+      modelEnglish: 'Ibrahim worships Allah alone.',
+    },
+    {
+      questionArabic: 'مَا دِينُ إِبْرَاهِيمَ؟',
+      questionTransliteration: 'mā dīnu Ibrāhīma?',
+      questionEnglish: "What is Ibrahim's religion?",
+      modelArabic: 'دِينُهُ التَّوْحِيدُ — عِبَادَةُ اللَّهِ وَحْدَهُ',
+      modelTransliteration: "dīnuhu t-tawḥīdu — 'ibādatu llāhi waḥdahu",
+      modelEnglish: 'His religion is tawḥīd — worshipping Allah alone.',
+    },
+    {
+      questionArabic: 'هَلْ يَقْبَلُ إِبْرَاهِيمُ الشِّرْكَ؟',
+      questionTransliteration: 'hal yaqbalu Ibrāhīmu sh-shirka?',
+      questionEnglish: 'Does Ibrahim accept shirk?',
+      modelArabic: 'لَا، لَا يَقْبَلُ الشِّرْكَ أَبَدًا',
+      modelTransliteration: 'lā, lā yaqbalu sh-shirka abadan',
+      modelEnglish: 'No, he never accepts shirk.',
+    },
+    {
+      questionArabic: 'لِمَنِ الْعِبَادَةُ؟',
+      questionTransliteration: "limani l-'ibādatu?",
+      questionEnglish: 'To whom does worship belong?',
+      modelArabic: 'الْعِبَادَةُ لِلَّهِ وَحْدَهُ',
+      modelTransliteration: "al-'ibādatu lillāhi waḥdahu",
+      modelEnglish: 'Worship belongs to Allah alone.',
+    },
+  ],
+  'story-04': [
+    {
+      questionArabic: 'أَيْنَ ذَهَبَ النَّاسُ يَوْمَ الْعِيدِ؟',
+      questionTransliteration: "ayna dhahaba n-nāsu yawma l-'īdi?",
+      questionEnglish: 'Where did the people go on the day of Eid?',
+      modelArabic: 'خَرَجَ النَّاسُ مِنَ الْبُيُوتِ إِلَى الْعِيدِ',
+      modelTransliteration: "kharaja n-nāsu mina l-buyūti ilā l-'īdi",
+      modelEnglish: 'The people went out of the houses to the festival.',
+    },
+    {
+      questionArabic: 'هَلْ خَرَجَ إِبْرَاهِيمُ مَعَ النَّاسِ؟',
+      questionTransliteration: "hal kharaja Ibrāhīmu ma'a n-nāsi?",
+      questionEnglish: 'Did Ibrahim go out with the people?',
+      modelArabic: 'لَا، بَقِيَ إِبْرَاهِيمُ فِي الْبَيْتِ وَحْدَهُ',
+      modelTransliteration: 'lā, baqiya Ibrāhīmu fī l-bayti waḥdahu',
+      modelEnglish: 'No, Ibrahim stayed in the house alone.',
+    },
+    {
+      questionArabic: 'مَاذَا فَعَلَ إِبْرَاهِيمُ بِالْأَصْنَامِ؟',
+      questionTransliteration: "mādhā fa'ala Ibrāhīmu bil-aṣnāmi?",
+      questionEnglish: 'What did Ibrahim do to the idols?',
+      modelArabic: 'ضَرَبَ الْأَصْنَامَ حَتَّى كَسَرَهَا',
+      modelTransliteration: 'ḍaraba l-aṣnāma ḥattā kasarahā',
+      modelEnglish: 'He struck the idols until he broke them.',
+    },
+    {
+      questionArabic: 'أَيَّ صَنَمٍ تَرَكَ إِبْرَاهِيمُ؟',
+      questionTransliteration: 'ayya ṣanamin taraka Ibrāhīmu?',
+      questionEnglish: 'Which idol did Ibrahim leave?',
+      modelArabic: 'كَسَرَ الصَّغِيرَةَ وَتَرَكَ الصَّنَمَ الْكَبِيرَ',
+      modelTransliteration: 'kasara ṣ-ṣaghīrata wa taraka ṣ-ṣanama l-kabīra',
+      modelEnglish: 'He broke the small ones and left the big idol.',
+    },
+    {
+      questionArabic: 'لِمَاذَا سَكَتَتِ الْأَصْنَامُ؟',
+      questionTransliteration: 'limādhā sakatati l-aṣnāmu?',
+      questionEnglish: 'Why were the idols silent?',
+      modelArabic: 'لِأَنَّهَا حِجَارَةٌ لَا تَنْطِقُ وَلَا تَسْمَعُ',
+      modelTransliteration: "li'annahā ḥijāratun lā tanṭiqu wa lā tasma'u",
+      modelEnglish: 'Because they are stones that neither speak nor hear.',
+    },
+  ],
+  'story-05': [
+    {
+      questionArabic: 'مَاذَا رَأَى النَّاسُ عِنْدَمَا رَجَعُوا مِنَ الْعِيدِ؟',
+      questionTransliteration: "mādhā ra'ā n-nāsu 'indamā raja'ū mina l-'īdi?",
+      questionEnglish: 'What did the people see when they returned from the festival?',
+      modelArabic: 'رَأَوُا الْأَصْنَامَ مَكْسُورَةً',
+      modelTransliteration: "ra'awu l-aṣnāma maksūratan",
+      modelEnglish: 'They saw the idols broken.',
+    },
+    {
+      questionArabic: 'مَاذَا قَالَ النَّاسُ؟',
+      questionTransliteration: 'mādhā qāla n-nāsu?',
+      questionEnglish: 'What did the people say?',
+      modelArabic: 'قَالُوا: مَنْ فَعَلَ هَذَا بِأَصْنَامِنَا؟',
+      modelTransliteration: "qālū: man fa'ala hādhā bi-aṣnāminā?",
+      modelEnglish: 'They said: who did this to our idols?',
+    },
+    {
+      questionArabic: 'مَاذَا سَأَلَ النَّاسُ إِبْرَاهِيمَ؟',
+      questionTransliteration: "mādhā sa'ala n-nāsu Ibrāhīma?",
+      questionEnglish: 'What did the people ask Ibrahim?',
+      modelArabic: 'سَأَلُوهُ: أَأَنْتَ فَعَلْتَ هَذَا؟',
+      modelTransliteration: "sa'alūhu: a-anta fa'alta hādhā?",
+      modelEnglish: 'They asked him: did you do this?',
+    },
+    {
+      questionArabic: 'مَاذَا قَالَ إِبْرَاهِيمُ لَهُمْ؟',
+      questionTransliteration: 'mādhā qāla Ibrāhīmu lahum?',
+      questionEnglish: 'What did Ibrahim say to them?',
+      modelArabic: 'قَالَ: الصَّنَمُ الْكَبِيرُ فَعَلَ هَذَا — اسْأَلُوهُ',
+      modelTransliteration: "qāla: aṣ-ṣanamu l-kabīru fa'ala hādhā — is'alūhu",
+      modelEnglish: 'He said: the big idol did this — ask it!',
+    },
+    {
+      questionArabic: 'مَاذَا عَرَفَ النَّاسُ فِي النِّهَايَةِ؟',
+      questionTransliteration: "mādhā 'arafa n-nāsu fī n-nihāyati?",
+      questionEnglish: 'What did the people realize in the end?',
+      modelArabic: 'عَرَفُوا أَنَّ الْأَصْنَامَ حِجَارَةٌ لَا تَسْمَعُ وَلَا تَنْطِقُ',
+      modelTransliteration: "'arafū anna l-aṣnāma ḥijāratun lā tasma'u wa lā tanṭiqu",
+      modelEnglish: 'They realized that the idols are stones that neither hear nor speak.',
+    },
+  ],
+  'story-06': [
+    {
+      questionArabic: 'مَاذَا فَعَلَ النَّاسُ بِإِبْرَاهِيمَ؟',
+      questionTransliteration: "mādhā fa'ala n-nāsu bi-Ibrāhīma?",
+      questionEnglish: 'What did the people do to Ibrahim?',
+      modelArabic: 'جَمَعُوا نَارًا عَظِيمَةً وَأَلْقَوْا إِبْرَاهِيمَ فِي النَّارِ',
+      modelTransliteration: "jama'ū nāran 'aẓīmatan wa alqaw Ibrāhīma fī n-nāri",
+      modelEnglish: 'They gathered a great fire and threw Ibrahim into it.',
+    },
+    {
+      questionArabic: 'هَلْ ضَرَّتِ النَّارُ إِبْرَاهِيمَ؟',
+      questionTransliteration: 'hal ḍarrati n-nāru Ibrāhīma?',
+      questionEnglish: 'Did the fire harm Ibrahim?',
+      modelArabic: 'لَا، وَجَدَ النَّاسُ أَنَّ النَّارَ لَا تَضُرُّ إِبْرَاهِيمَ',
+      modelTransliteration: 'lā, wajada n-nāsu anna n-nāra lā taḍurru Ibrāhīma',
+      modelEnglish: 'No — the people found that the fire did not harm Ibrahim.',
+    },
+    {
+      questionArabic: 'كَيْفَ وَجَدُوا إِبْرَاهِيمَ؟',
+      questionTransliteration: 'kayfa wajadū Ibrāhīma?',
+      questionEnglish: 'How did they find Ibrahim?',
+      modelArabic: 'وَجَدُوهُ سَالِمًا — لَيْسَ فَوْقَهُ أَثَرٌ مِنَ النَّارِ',
+      modelTransliteration: 'wajadūhu sāliman — laysa fawqahu atharun mina n-nāri',
+      modelEnglish: 'They found him unharmed — with no trace of the fire on him.',
+    },
+    {
+      questionArabic: 'لِمَاذَا نَصَرَ اللَّهُ إِبْرَاهِيمَ؟',
+      questionTransliteration: 'limādhā naṣara llāhu Ibrāhīma?',
+      questionEnglish: 'Why did Allah give Ibrahim victory?',
+      modelArabic: 'لِأَنَّ إِبْرَاهِيمَ مِنَ الَّذِينَ آمَنُوا بِاللَّهِ',
+      modelTransliteration: "li'anna Ibrāhīma mina lladhīna āmanū billāhi",
+      modelEnglish: 'Because Ibrahim was of those who believed in Allah.',
+    },
+    {
+      questionArabic: 'مَعَ مَنِ اللَّهُ؟',
+      questionTransliteration: "ma'a mani llāhu?",
+      questionEnglish: 'With whom is Allah?',
+      modelArabic: 'اللَّهُ مَعَ الَّذِينَ يُؤْمِنُونَ بِهِ',
+      modelTransliteration: "allāhu ma'a lladhīna yu'minūna bihi",
+      modelEnglish: 'Allah is with those who believe in Him.',
+    },
+  ],
+}

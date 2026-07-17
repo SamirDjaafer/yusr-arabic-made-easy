@@ -8,6 +8,8 @@ import { VocabBankPage } from './pages/VocabBankPage'
 import { GrammarReferencePage } from './pages/GrammarReferencePage'
 import { ReviewPage } from './pages/ReviewPage'
 import { SentenceLabPage } from './pages/SentenceLabPage'
+import { ExercisesPage } from './pages/ExercisesPage'
+import { ChallengesPage } from './pages/ChallengesPage'
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
           <Route path="/grammar" element={<GrammarReferencePage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/lab" element={<SentenceLabPage />} />
+          <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/challenges" element={<ChallengesPage />} />
         </Routes>
       </AppShell>
     </BrowserRouter>
