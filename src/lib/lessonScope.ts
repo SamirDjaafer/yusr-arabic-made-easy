@@ -1,6 +1,13 @@
 import type { Story, Word } from '../types'
 import { stories, getStoryById } from '../data/stories'
 import { words } from '../data/words'
+import { lexiconUpTo } from '../data/original/adapter'
+
+const stripDiacritics = (s: string) => s.replace(/[ً-ْٰـ]/g, '').replace(/[أإآٱ]/g, 'ا')
+
+function lexBareSet(currentOrder: number): Set<string> {
+  return new Set(lexiconUpTo(currentOrder).map((e) => stripDiacritics(e.arabic)))
+}
 
 // The student picks the story/lesson they are on, and every section shows the
 // cumulative subset for stories 1..N: vocab, grammar concepts, sentences,
@@ -29,8 +36,10 @@ export function scopedWordIds(currentStoryId: string): Set<string> {
 export function scopedRoots(currentStoryId: string): Set<string> {
   const roots = new Set<string>()
   const ids = scopedWordIds(currentStoryId)
+  const order = getStoryById(currentStoryId)?.order ?? 1
+  const lex = lexBareSet(order)
   for (const w of words) {
-    if (ids.has(w.id) && w.root) roots.add(w.root)
+    if ((ids.has(w.id) || lex.has(stripDiacritics(w.arabic))) && w.root) roots.add(w.root)
   }
   return roots
 }
@@ -39,6 +48,9 @@ export function isWordInScope(word: Word, currentStoryId: string): boolean {
   if (ALWAYS_IN_SCOPE_POS.has(word.partOfSpeech)) return true
   const ids = scopedWordIds(currentStoryId)
   if (ids.has(word.id)) return true
+  // words that appear (in base form) in the original lexicon up to this lesson
+  const order = getStoryById(currentStoryId)?.order ?? 1
+  if (lexBareSet(order).has(stripDiacritics(word.arabic))) return true
   // conjugation twins share the root of a word already met
   if (word.root && scopedRoots(currentStoryId).has(word.root)) return true
   return false
