@@ -4,8 +4,10 @@ import { getStoryById } from '../data/stories'
 import {
   arabicAnswersMatch,
   makeChangeOneWord,
+  makeSentenceTranslate,
   makeTrueFalse,
   makeVocabTranslate,
+  type SentenceTranslateQuestion,
   type TrueFalseQuestion,
   type VocabTranslateQuestion,
   type WordDrillQuestion,
@@ -13,12 +15,13 @@ import {
 
 const SESSION_LENGTH = 10
 
-type DrillType = 'change-one-word' | 'true-false' | 'vocab-translate'
+type DrillType = 'change-one-word' | 'true-false' | 'vocab-translate' | 'sentence-translate'
 
 const DRILLS: { type: DrillType; icon: string; title: string; blurb: string }[] = [
   { type: 'change-one-word', icon: '✏️', title: 'Change One Word', blurb: 'A sentence has one wrong word. Type the correct replacement.' },
   { type: 'true-false', icon: '✅', title: 'True or False', blurb: 'Is the sentence correct, or does it contain an error?' },
   { type: 'vocab-translate', icon: '📖', title: 'Vocab — Translate', blurb: 'Read the English word, write the Arabic with harakat, then reveal and grade yourself.' },
+  { type: 'sentence-translate', icon: '✍️', title: 'Sentence — Translate', blurb: 'Read an English sentence, write the whole thing in Arabic, then reveal and grade yourself.' },
 ]
 
 export function ExercisesPage() {
@@ -151,6 +154,9 @@ function DrillSession({ storyId, type, onExit }: { storyId: string; type: DrillT
       {question.kind === 'vocab-translate' && (
         <VocabTranslateCard key={questionNumber} q={question} onResult={handleResult} onNext={next} />
       )}
+      {question.kind === 'sentence-translate' && (
+        <SentenceTranslateCard key={questionNumber} q={question} onResult={handleResult} onNext={next} />
+      )}
     </div>
   )
 }
@@ -158,7 +164,8 @@ function DrillSession({ storyId, type, onExit }: { storyId: string; type: DrillT
 function makeQuestion(storyId: string, type: DrillType) {
   if (type === 'change-one-word') return makeChangeOneWord(storyId)
   if (type === 'true-false') return makeTrueFalse(storyId)
-  return makeVocabTranslate(storyId)
+  if (type === 'vocab-translate') return makeVocabTranslate(storyId)
+  return makeSentenceTranslate(storyId)
 }
 
 const cardClass = 'rounded-2xl border border-teal-700/15 bg-white/60 p-6 dark:border-teal-100/15 dark:bg-ink-900/40'
@@ -329,6 +336,67 @@ function VocabTranslateCard({ q, onResult, onNext }: { q: VocabTranslateQuestion
               {q.arabic}
             </p>
             <p className="mt-1 text-sm italic text-teal-700 dark:text-teal-300">{q.transliteration}</p>
+          </div>
+          {!graded ? (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <button type="button" onClick={() => grade(false)} className="rounded-xl bg-rose-500 px-3 py-2 text-sm font-semibold text-white">
+                No idea
+              </button>
+              <button type="button" onClick={() => grade(false)} className="rounded-xl bg-gold-500 px-3 py-2 text-sm font-semibold text-ink-950">
+                Nearly got it
+              </button>
+              <button type="button" onClick={() => grade(true)} className="rounded-xl bg-leaf-500 px-3 py-2 text-sm font-semibold text-white">
+                Got it right!
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={onNext} className={`${buttonClass} mt-3`}>
+              Next →
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SentenceTranslateCard({ q, onResult, onNext }: { q: SentenceTranslateQuestion; onResult: (c: boolean) => void; onNext: () => void }) {
+  const [typed, setTyped] = useState('')
+  const [revealed, setRevealed] = useState(false)
+  const [graded, setGraded] = useState(false)
+
+  const grade = (gotIt: boolean) => {
+    setGraded(true)
+    onResult(gotIt)
+  }
+
+  return (
+    <div className={cardClass}>
+      <p className="text-xs font-bold uppercase tracking-wide text-gold-600 dark:text-gold-300">
+        Read the English sentence, write it in Arabic, then reveal
+      </p>
+      <p className="mt-3 text-xl font-semibold text-ink-900 dark:text-parchment-50">{q.english}</p>
+
+      <textarea
+        value={typed}
+        onChange={(e) => setTyped(e.target.value)}
+        dir="rtl"
+        rows={2}
+        placeholder="اكتب الجملة بالحركات"
+        disabled={revealed}
+        className="font-arabic mt-4 w-full resize-none rounded-xl border border-teal-700/20 bg-parchment-50/70 px-3 py-2 text-2xl leading-loose outline-none focus:border-teal-500 dark:border-teal-100/20 dark:bg-ink-950/40"
+      />
+
+      {!revealed ? (
+        <button type="button" onClick={() => setRevealed(true)} className={`${buttonClass} mt-4`}>
+          Reveal →
+        </button>
+      ) : (
+        <div className="mt-4">
+          <div className="rounded-xl border border-teal-700/15 bg-parchment-50/60 p-4 text-right dark:border-teal-100/15 dark:bg-ink-950/30">
+            <p className="font-arabic text-2xl leading-loose text-ink-900 dark:text-parchment-50" dir="rtl">
+              {q.arabic}
+            </p>
           </div>
           {!graded ? (
             <div className="mt-3 grid grid-cols-3 gap-2">

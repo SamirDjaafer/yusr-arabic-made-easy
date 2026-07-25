@@ -90,6 +90,12 @@ export function conjugatePresent(word: Word): Paradigm | null {
   const hand = HAND_AUTHORED[word.id]?.present
   if (hand) return hand
   if (word.partOfSpeech !== 'verb') return null
+  // geminate roots (r2 === r3, e.g. دَلَّ/يَدُلُّ) unpack the doubled consonant
+  // before consonant-initial suffixes (تَدْلُلْنَ) — the shadda is a diacritic,
+  // not a distinct letter, so the weak-letter scan below can't catch this;
+  // these need a hand-authored table instead.
+  const rl = rootLetters(word)
+  if (rl && rl.length === 3 && rl[1] === rl[2]) return null
 
   const base = word.arabic
   // must be a present-tense "he" form: يَـ or يُـ prefix, indicative -u ending
@@ -99,19 +105,26 @@ export function conjugatePresent(word: Word): Paradigm | null {
   const prefixVowel = base[1]
   const core = base.slice(2, -1) // يَعْبُدُ -> عْبُد
 
-  // defective (ends in a weak letter) or hamza-initial cores break concatenation,
-  // and hollow cores (long vowel inside, e.g. يُرِيدُ) shorten in the feminine
-  // plural (يُرِدْنَ) — all of these need a hand-authored table instead
+  // defective (ends in a weak letter) or hamza-initial cores break concatenation
+  // — those still need a hand-authored table. A single MEDIAL weak letter
+  // (hollow, e.g. يُرِيدُ, يَقُومُ) is handled generically below: it shortens
+  // in the feminine plural (يُرِدْنَ، يَقُمْنَ) but is otherwise regular.
   const coreBare = core.replace(/[ً-ْ]/g, '')
   if (WEAK_LETTERS.includes(coreBare[coreBare.length - 1])) return null
   if (['أ', 'ء', 'ؤ'].includes(coreBare[0])) return null // hamza-initial cores (يُؤْمِنُ → أُومِنُ) need special handling
-  if ([...coreBare].some((ch) => WEAK_LETTERS.includes(ch))) return null
+  const weakPositions = [...coreBare].reduce<number[]>((acc, ch, i) => (WEAK_LETTERS.includes(ch) ? [...acc, i] : acc), [])
+  const isHollow = weakPositions.length === 1 && weakPositions[0] > 0 && weakPositions[0] < coreBare.length - 1
+  if (!isHollow && weakPositions.length > 0) return null
 
   const t = word.transliteration
   const tMatch = t.match(/^y([au])(.+)u$/)
   if (!tMatch) return null
   const tv = tMatch[1]
   const tCore = tMatch[2]
+  // shortened core/transliteration for the two persons where the hollow's
+  // long vowel collapses before a sukūn-initial suffix (تَقُمْنَ not تَقُومْنَ)
+  const shortCore = isHollow ? core.replace(coreBare[weakPositions[0]], '') : core
+  const shortTCore = isHollow ? tCore.replace('ā', 'a').replace('ī', 'i').replace('ū', 'u') : tCore
 
   const meaningBase = word.meaning.replace(/^(he|it) /, '').replace(/s$/, '')
   const gloss = (person: string, conj: string) => `${person} ${conj}`
@@ -128,9 +141,9 @@ export function conjugatePresent(word: Word): Paradigm | null {
       { label: 'she', arabic: 'ت' + prefixVowel + core + DAMMA, transliteration: 't' + tv + tCore + 'u', gloss: `she ${m3}` },
       { label: 'we', arabic: 'ن' + prefixVowel + core + DAMMA, transliteration: 'n' + tv + tCore + 'u', gloss: gloss('we', meaningBase) },
       { label: 'you (masc. plural)', arabic: 'ت' + prefixVowel + core + DAMMA + 'ونَ', transliteration: 't' + tv + tCore + 'ūna', gloss: gloss('you (m. pl.)', meaningBase) },
-      { label: 'you (fem. plural)', arabic: 'ت' + prefixVowel + core + SUKUN + 'نَ', transliteration: 't' + tv + tCore + 'na', gloss: gloss('you (f. pl.)', meaningBase) },
+      { label: 'you (fem. plural)', arabic: 'ت' + prefixVowel + shortCore + SUKUN + 'نَ', transliteration: 't' + tv + shortTCore + 'na', gloss: gloss('you (f. pl.)', meaningBase) },
       { label: 'they (masc.)', arabic: 'ي' + prefixVowel + core + DAMMA + 'ونَ', transliteration: 'y' + tv + tCore + 'ūna', gloss: gloss('they (m.)', meaningBase) },
-      { label: 'they (fem.)', arabic: 'ي' + prefixVowel + core + SUKUN + 'نَ', transliteration: 'y' + tv + tCore + 'na', gloss: gloss('they (f.)', meaningBase) },
+      { label: 'they (fem.)', arabic: 'ي' + prefixVowel + shortCore + SUKUN + 'نَ', transliteration: 'y' + tv + shortTCore + 'na', gloss: gloss('they (f.)', meaningBase) },
     ],
   }
 }
@@ -240,6 +253,8 @@ export function conjugateImperative(word: Word): Paradigm | null {
   const hand = HAND_AUTHORED[word.id]?.imperative
   if (hand) return hand
   if (word.partOfSpeech !== 'verb') return null
+  const rl = rootLetters(word)
+  if (rl && rl.length === 3 && rl[1] === rl[2]) return null // geminate — see conjugatePresent
 
   // derived from a sound يَـ present form (يَعْبُدُ); the same exclusions as
   // conjugatePresent apply, plus the core must start consonant+sukun so the
@@ -283,7 +298,7 @@ export function conjugateImperative(word: Word): Paradigm | null {
 
 function nounEligible(word: Word): boolean {
   if (word.partOfSpeech !== 'noun') return false
-  if (word.id === 'ab') return false // أب is irregular with suffixes (أَبُوكَ، أَبِيهِ)
+  if (word.id === 'ab' || word.id === 'akh') return false // أب/أخ are irregular with suffixes (أَبُوكَ، أَخُوكَ)
   // exclude entries that are already suffixed forms (دِينُكُمْ، أَبِيهِ)
   if (/\b(my|your|his|her|our|their)\b/.test(word.meaning)) return false
   // exclude words stored with a final case vowel (مِثْلُ) — the templates assume a bare stem
@@ -639,6 +654,900 @@ const HAND_AUTHORED: Record<string, { past?: Paradigm; present?: Paradigm; imper
         { label: 'you (fem. plural)', arabic: 'تُوَحِّدْنَ', transliteration: 'tuwaḥḥidna', gloss: 'you (f. pl.) declare the oneness' },
         { label: 'they (masc.)', arabic: 'يُوَحِّدُونَ', transliteration: 'yuwaḥḥidūna', gloss: 'they (m.) declare the oneness' },
         { label: 'they (fem.)', arabic: 'يُوَحِّدْنَ', transliteration: 'yuwaḥḥidna', gloss: 'they (f.) declare the oneness' },
+      ],
+    },
+  },
+
+  // --- hollow verbs (weak middle radical) — past only; the present tense is
+  // generated automatically by conjugatePresent's hollow-shortening logic. ---
+  qama: {
+    past: {
+      title: 'Past tense (الماضي) of قَامَ (to stand, rise) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'قُمْتُ', transliteration: 'qumtu', gloss: 'I stood' },
+        { label: 'you (masc.)', arabic: 'قُمْتَ', transliteration: 'qumta', gloss: 'you stood' },
+        { label: 'you (fem.)', arabic: 'قُمْتِ', transliteration: 'qumti', gloss: 'you stood' },
+        { label: 'he', arabic: 'قَامَ', transliteration: 'qāma', gloss: 'he stood' },
+        { label: 'she', arabic: 'قَامَتْ', transliteration: 'qāmat', gloss: 'she stood' },
+        { label: 'we', arabic: 'قُمْنَا', transliteration: 'qumnā', gloss: 'we stood' },
+        { label: 'you (masc. plural)', arabic: 'قُمْتُمْ', transliteration: 'qumtum', gloss: 'you (m. pl.) stood' },
+        { label: 'you (fem. plural)', arabic: 'قُمْتُنَّ', transliteration: 'qumtunna', gloss: 'you (f. pl.) stood' },
+        { label: 'they (masc.)', arabic: 'قَامُوا', transliteration: 'qāmū', gloss: 'they (m.) stood' },
+        { label: 'they (fem.)', arabic: 'قُمْنَ', transliteration: 'qumna', gloss: 'they (f.) stood' },
+      ],
+    },
+  },
+  aadaV: {
+    past: {
+      title: 'Past tense (الماضي) of عَادَ (to return) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'عُدْتُ', transliteration: 'udtu', gloss: 'I returned' },
+        { label: 'you (masc.)', arabic: 'عُدْتَ', transliteration: 'udta', gloss: 'you returned' },
+        { label: 'you (fem.)', arabic: 'عُدْتِ', transliteration: 'udti', gloss: 'you returned' },
+        { label: 'he', arabic: 'عَادَ', transliteration: 'āda', gloss: 'he returned' },
+        { label: 'she', arabic: 'عَادَتْ', transliteration: 'ādat', gloss: 'she returned' },
+        { label: 'we', arabic: 'عُدْنَا', transliteration: 'udnā', gloss: 'we returned' },
+        { label: 'you (masc. plural)', arabic: 'عُدْتُمْ', transliteration: 'udtum', gloss: 'you (m. pl.) returned' },
+        { label: 'you (fem. plural)', arabic: 'عُدْتُنَّ', transliteration: 'udtunna', gloss: 'you (f. pl.) returned' },
+        { label: 'they (masc.)', arabic: 'عَادُوا', transliteration: 'ādū', gloss: 'they (m.) returned' },
+        { label: 'they (fem.)', arabic: 'عُدْنَ', transliteration: 'udna', gloss: 'they (f.) returned' },
+      ],
+    },
+  },
+  ghabaV: {
+    past: {
+      title: 'Past tense (الماضي) of غَابَ (to disappear, set) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'غِبْتُ', transliteration: 'ghibtu', gloss: 'I disappeared' },
+        { label: 'you (masc.)', arabic: 'غِبْتَ', transliteration: 'ghibta', gloss: 'you disappeared' },
+        { label: 'you (fem.)', arabic: 'غِبْتِ', transliteration: 'ghibti', gloss: 'you disappeared' },
+        { label: 'he', arabic: 'غَابَ', transliteration: 'ghāba', gloss: 'he disappeared' },
+        { label: 'she', arabic: 'غَابَتْ', transliteration: 'ghābat', gloss: 'she disappeared' },
+        { label: 'we', arabic: 'غِبْنَا', transliteration: 'ghibnā', gloss: 'we disappeared' },
+        { label: 'you (masc. plural)', arabic: 'غِبْتُمْ', transliteration: 'ghibtum', gloss: 'you (m. pl.) disappeared' },
+        { label: 'you (fem. plural)', arabic: 'غِبْتُنَّ', transliteration: 'ghibtunna', gloss: 'you (f. pl.) disappeared' },
+        { label: 'they (masc.)', arabic: 'غَابُوا', transliteration: 'ghābū', gloss: 'they (m.) disappeared' },
+        { label: 'they (fem.)', arabic: 'غِبْنَ', transliteration: 'ghibna', gloss: 'they (f.) disappeared' },
+      ],
+    },
+  },
+  khafaV: {
+    past: {
+      title: 'Past tense (الماضي) of خَافَ (to fear) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'خِفْتُ', transliteration: 'khiftu', gloss: 'I feared' },
+        { label: 'you (masc.)', arabic: 'خِفْتَ', transliteration: 'khifta', gloss: 'you feared' },
+        { label: 'you (fem.)', arabic: 'خِفْتِ', transliteration: 'khifti', gloss: 'you feared' },
+        { label: 'he', arabic: 'خَافَ', transliteration: 'khāfa', gloss: 'he feared' },
+        { label: 'she', arabic: 'خَافَتْ', transliteration: 'khāfat', gloss: 'she feared' },
+        { label: 'we', arabic: 'خِفْنَا', transliteration: 'khifnā', gloss: 'we feared' },
+        { label: 'you (masc. plural)', arabic: 'خِفْتُمْ', transliteration: 'khiftum', gloss: 'you (m. pl.) feared' },
+        { label: 'you (fem. plural)', arabic: 'خِفْتُنَّ', transliteration: 'khiftunna', gloss: 'you (f. pl.) feared' },
+        { label: 'they (masc.)', arabic: 'خَافُوا', transliteration: 'khāfū', gloss: 'they (m.) feared' },
+        { label: 'they (fem.)', arabic: 'خِفْنَ', transliteration: 'khifna', gloss: 'they (f.) feared — this verb reduces with kasra even though the present (يَخَافُ) has fatha' },
+      ],
+    },
+  },
+  saraV: {
+    past: {
+      title: 'Past tense (الماضي) of صَارَ (to become) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'صِرْتُ', transliteration: 'ṣirtu', gloss: 'I became' },
+        { label: 'you (masc.)', arabic: 'صِرْتَ', transliteration: 'ṣirta', gloss: 'you became' },
+        { label: 'you (fem.)', arabic: 'صِرْتِ', transliteration: 'ṣirti', gloss: 'you became' },
+        { label: 'he', arabic: 'صَارَ', transliteration: 'ṣāra', gloss: 'he became' },
+        { label: 'she', arabic: 'صَارَتْ', transliteration: 'ṣārat', gloss: 'she became' },
+        { label: 'we', arabic: 'صِرْنَا', transliteration: 'ṣirnā', gloss: 'we became' },
+        { label: 'you (masc. plural)', arabic: 'صِرْتُمْ', transliteration: 'ṣirtum', gloss: 'you (m. pl.) became' },
+        { label: 'you (fem. plural)', arabic: 'صِرْتُنَّ', transliteration: 'ṣirtunna', gloss: 'you (f. pl.) became' },
+        { label: 'they (masc.)', arabic: 'صَارُوا', transliteration: 'ṣārū', gloss: 'they (m.) became' },
+        { label: 'they (fem.)', arabic: 'صِرْنَ', transliteration: 'ṣirna', gloss: 'they (f.) became' },
+      ],
+    },
+  },
+  ashaV: {
+    past: {
+      title: 'Past tense (الماضي) of عَاشَ (to live) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'عِشْتُ', transliteration: "'ishtu", gloss: 'I lived' },
+        { label: 'you (masc.)', arabic: 'عِشْتَ', transliteration: "'ishta", gloss: 'you lived' },
+        { label: 'you (fem.)', arabic: 'عِشْتِ', transliteration: "'ishti", gloss: 'you lived' },
+        { label: 'he', arabic: 'عَاشَ', transliteration: "'āsha", gloss: 'he lived' },
+        { label: 'she', arabic: 'عَاشَتْ', transliteration: "'āshat", gloss: 'she lived' },
+        { label: 'we', arabic: 'عِشْنَا', transliteration: "'ishnā", gloss: 'we lived' },
+        { label: 'you (masc. plural)', arabic: 'عِشْتُمْ', transliteration: "'ishtum", gloss: 'you (m. pl.) lived' },
+        { label: 'you (fem. plural)', arabic: 'عِشْتُنَّ', transliteration: "'ishtunna", gloss: 'you (f. pl.) lived' },
+        { label: 'they (masc.)', arabic: 'عَاشُوا', transliteration: "'āshū", gloss: 'they (m.) lived' },
+        { label: 'they (fem.)', arabic: 'عِشْنَ', transliteration: "'ishna", gloss: 'they (f.) lived' },
+      ],
+    },
+  },
+  tafaV: {
+    past: {
+      title: 'Past tense (الماضي) of طَافَ (to circumambulate) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'طُفْتُ', transliteration: 'ṭuftu', gloss: 'I circumambulated' },
+        { label: 'you (masc.)', arabic: 'طُفْتَ', transliteration: 'ṭufta', gloss: 'you circumambulated' },
+        { label: 'you (fem.)', arabic: 'طُفْتِ', transliteration: 'ṭufti', gloss: 'you circumambulated' },
+        { label: 'he', arabic: 'طَافَ', transliteration: 'ṭāfa', gloss: 'he circumambulated' },
+        { label: 'she', arabic: 'طَافَتْ', transliteration: 'ṭāfat', gloss: 'she circumambulated' },
+        { label: 'we', arabic: 'طُفْنَا', transliteration: 'ṭufnā', gloss: 'we circumambulated' },
+        { label: 'you (masc. plural)', arabic: 'طُفْتُمْ', transliteration: 'ṭuftum', gloss: 'you (m. pl.) circumambulated' },
+        { label: 'you (fem. plural)', arabic: 'طُفْتُنَّ', transliteration: 'ṭuftunna', gloss: 'you (f. pl.) circumambulated' },
+        { label: 'they (masc.)', arabic: 'طَافُوا', transliteration: 'ṭāfū', gloss: 'they (m.) circumambulated' },
+        { label: 'they (fem.)', arabic: 'طُفْنَ', transliteration: 'ṭufna', gloss: 'they (f.) circumambulated' },
+      ],
+    },
+  },
+  zadaV: {
+    past: {
+      title: 'Past tense (الماضي) of زَادَ (to increase) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'زِدْتُ', transliteration: 'zidtu', gloss: 'I increased' },
+        { label: 'you (masc.)', arabic: 'زِدْتَ', transliteration: 'zidta', gloss: 'you increased' },
+        { label: 'you (fem.)', arabic: 'زِدْتِ', transliteration: 'zidti', gloss: 'you increased' },
+        { label: 'he', arabic: 'زَادَ', transliteration: 'zāda', gloss: 'he increased' },
+        { label: 'she', arabic: 'زَادَتْ', transliteration: 'zādat', gloss: 'she increased' },
+        { label: 'we', arabic: 'زِدْنَا', transliteration: 'zidnā', gloss: 'we increased' },
+        { label: 'you (masc. plural)', arabic: 'زِدْتُمْ', transliteration: 'zidtum', gloss: 'you (m. pl.) increased' },
+        { label: 'you (fem. plural)', arabic: 'زِدْتُنَّ', transliteration: 'zidtunna', gloss: 'you (f. pl.) increased' },
+        { label: 'they (masc.)', arabic: 'زَادُوا', transliteration: 'zādū', gloss: 'they (m.) increased' },
+        { label: 'they (fem.)', arabic: 'زِدْنَ', transliteration: 'zidna', gloss: 'they (f.) increased' },
+      ],
+    },
+  },
+  aqamaV: {
+    past: {
+      title: 'Past tense (الماضي) of أَقَامَ (to establish) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'أَقَمْتُ', transliteration: 'aqamtu', gloss: 'I established' },
+        { label: 'you (masc.)', arabic: 'أَقَمْتَ', transliteration: 'aqamta', gloss: 'you established' },
+        { label: 'you (fem.)', arabic: 'أَقَمْتِ', transliteration: 'aqamti', gloss: 'you established' },
+        { label: 'he', arabic: 'أَقَامَ', transliteration: 'aqāma', gloss: 'he established' },
+        { label: 'she', arabic: 'أَقَامَتْ', transliteration: 'aqāmat', gloss: 'she established' },
+        { label: 'we', arabic: 'أَقَمْنَا', transliteration: 'aqamnā', gloss: 'we established' },
+        { label: 'you (masc. plural)', arabic: 'أَقَمْتُمْ', transliteration: 'aqamtum', gloss: 'you (m. pl.) established' },
+        { label: 'you (fem. plural)', arabic: 'أَقَمْتُنَّ', transliteration: 'aqamtunna', gloss: 'you (f. pl.) established' },
+        { label: 'they (masc.)', arabic: 'أَقَامُوا', transliteration: 'aqāmū', gloss: 'they (m.) established' },
+        { label: 'they (fem.)', arabic: 'أَقَمْنَ', transliteration: 'aqamna', gloss: 'they (f.) established — Form IV hollow verbs always reduce with fatha' },
+      ],
+    },
+  },
+  amataV: {
+    past: {
+      title: 'Past tense (الماضي) of أَمَاتَ (to cause to die) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'أَمَتُّ', transliteration: 'amattu', gloss: 'I caused to die — the ت of the ending merges with the root ت' },
+        { label: 'you (masc.)', arabic: 'أَمَتَّ', transliteration: 'amatta', gloss: 'you caused to die' },
+        { label: 'you (fem.)', arabic: 'أَمَتِّ', transliteration: 'amatti', gloss: 'you caused to die' },
+        { label: 'he', arabic: 'أَمَاتَ', transliteration: 'amāta', gloss: 'he caused to die' },
+        { label: 'she', arabic: 'أَمَاتَتْ', transliteration: 'amātat', gloss: 'she caused to die' },
+        { label: 'we', arabic: 'أَمَتْنَا', transliteration: 'amatnā', gloss: 'we caused to die' },
+        { label: 'you (masc. plural)', arabic: 'أَمَتُّمْ', transliteration: 'amattum', gloss: 'you (m. pl.) caused to die' },
+        { label: 'you (fem. plural)', arabic: 'أَمَتُّنَّ', transliteration: 'amattunna', gloss: 'you (f. pl.) caused to die' },
+        { label: 'they (masc.)', arabic: 'أَمَاتُوا', transliteration: 'amātū', gloss: 'they (m.) caused to die' },
+        { label: 'they (fem.)', arabic: 'أَمَتْنَ', transliteration: 'amatna', gloss: 'they (f.) caused to die' },
+      ],
+    },
+  },
+  ataaIV: {
+    past: {
+      title: 'Past tense (الماضي) of أَطَاعَ (to obey) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'أَطَعْتُ', transliteration: "aṭa'tu", gloss: 'I obeyed' },
+        { label: 'you (masc.)', arabic: 'أَطَعْتَ', transliteration: "aṭa'ta", gloss: 'you obeyed' },
+        { label: 'you (fem.)', arabic: 'أَطَعْتِ', transliteration: "aṭa'ti", gloss: 'you obeyed' },
+        { label: 'he', arabic: 'أَطَاعَ', transliteration: "aṭā'a", gloss: 'he obeyed' },
+        { label: 'she', arabic: 'أَطَاعَتْ', transliteration: "aṭā'at", gloss: 'she obeyed' },
+        { label: 'we', arabic: 'أَطَعْنَا', transliteration: "aṭa'nā", gloss: 'we obeyed' },
+        { label: 'you (masc. plural)', arabic: 'أَطَعْتُمْ', transliteration: "aṭa'tum", gloss: 'you (m. pl.) obeyed' },
+        { label: 'you (fem. plural)', arabic: 'أَطَعْتُنَّ', transliteration: "aṭa'tunna", gloss: 'you (f. pl.) obeyed' },
+        { label: 'they (masc.)', arabic: 'أَطَاعُوا', transliteration: "aṭā'ū", gloss: 'they (m.) obeyed' },
+        { label: 'they (fem.)', arabic: 'أَطَعْنَ', transliteration: "aṭa'na", gloss: 'they (f.) obeyed' },
+      ],
+    },
+  },
+
+  // --- defective verbs (weak final radical) — both tenses hand-authored,
+  // since the ending pattern depends on which of three present-tense
+  // classes (يَفْعِي / يَفْعُو / يَفْعَى) the verb belongs to. ---
+  mashaV: {
+    past: {
+      title: 'Past tense (الماضي) of مَشَى (to walk) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'مَشَيْتُ', transliteration: 'mashaytu', gloss: 'I walked' },
+        { label: 'you (masc.)', arabic: 'مَشَيْتَ', transliteration: 'mashayta', gloss: 'you walked' },
+        { label: 'you (fem.)', arabic: 'مَشَيْتِ', transliteration: 'mashayti', gloss: 'you walked' },
+        { label: 'he', arabic: 'مَشَى', transliteration: 'mashā', gloss: 'he walked' },
+        { label: 'she', arabic: 'مَشَتْ', transliteration: 'mashat', gloss: 'she walked — the weak letter drops entirely' },
+        { label: 'we', arabic: 'مَشَيْنَا', transliteration: 'mashaynā', gloss: 'we walked' },
+        { label: 'you (masc. plural)', arabic: 'مَشَيْتُمْ', transliteration: 'mashaytum', gloss: 'you (m. pl.) walked' },
+        { label: 'you (fem. plural)', arabic: 'مَشَيْتُنَّ', transliteration: 'mashaytunna', gloss: 'you (f. pl.) walked' },
+        { label: 'they (masc.)', arabic: 'مَشَوْا', transliteration: 'mashaw', gloss: 'they (m.) walked' },
+        { label: 'they (fem.)', arabic: 'مَشَيْنَ', transliteration: 'mashayna', gloss: 'they (f.) walked' },
+      ],
+    }
+  },
+  yamshiV: {
+    present: {
+      title: 'Present tense (المضارع) of يَمْشِي (to walk) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَمْشِي', transliteration: 'amshī', gloss: 'I walk' },
+        { label: 'you (masc.)', arabic: 'تَمْشِي', transliteration: 'tamshī', gloss: 'you walk' },
+        { label: 'you (fem.)', arabic: 'تَمْشِينَ', transliteration: 'tamshīna', gloss: 'you walk' },
+        { label: 'he', arabic: 'يَمْشِي', transliteration: 'yamshī', gloss: 'he walks' },
+        { label: 'she', arabic: 'تَمْشِي', transliteration: 'tamshī', gloss: 'she walks' },
+        { label: 'we', arabic: 'نَمْشِي', transliteration: 'namshī', gloss: 'we walk' },
+        { label: 'you (masc. plural)', arabic: 'تَمْشُونَ', transliteration: 'tamshūna', gloss: 'you (m. pl.) walk — the ي switches to و before ونَ' },
+        { label: 'you (fem. plural)', arabic: 'تَمْشِينَ', transliteration: 'tamshīna', gloss: 'you (f. pl.) walk — written the same as you (fem. sing.)' },
+        { label: 'they (masc.)', arabic: 'يَمْشُونَ', transliteration: 'yamshūna', gloss: 'they (m.) walk' },
+        { label: 'they (fem.)', arabic: 'يَمْشِينَ', transliteration: 'yamshīna', gloss: 'they (f.) walk' },
+      ],
+    },
+  },
+  bakaV: {
+    past: {
+      title: 'Past tense (الماضي) of بَكَى (to cry) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'بَكَيْتُ', transliteration: 'bakaytu', gloss: 'I cried' },
+        { label: 'you (masc.)', arabic: 'بَكَيْتَ', transliteration: 'bakayta', gloss: 'you cried' },
+        { label: 'you (fem.)', arabic: 'بَكَيْتِ', transliteration: 'bakayti', gloss: 'you cried' },
+        { label: 'he', arabic: 'بَكَى', transliteration: 'bakā', gloss: 'he cried' },
+        { label: 'she', arabic: 'بَكَتْ', transliteration: 'bakat', gloss: 'she cried' },
+        { label: 'we', arabic: 'بَكَيْنَا', transliteration: 'bakaynā', gloss: 'we cried' },
+        { label: 'you (masc. plural)', arabic: 'بَكَيْتُمْ', transliteration: 'bakaytum', gloss: 'you (m. pl.) cried' },
+        { label: 'you (fem. plural)', arabic: 'بَكَيْتُنَّ', transliteration: 'bakaytunna', gloss: 'you (f. pl.) cried' },
+        { label: 'they (masc.)', arabic: 'بَكَوْا', transliteration: 'bakaw', gloss: 'they (m.) cried' },
+        { label: 'they (fem.)', arabic: 'بَكَيْنَ', transliteration: 'bakayna', gloss: 'they (f.) cried' },
+      ],
+    }
+  },
+  yabkiV: {
+    present: {
+      title: 'Present tense (المضارع) of يَبْكِي (to cry) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَبْكِي', transliteration: 'abkī', gloss: 'I cry' },
+        { label: 'you (masc.)', arabic: 'تَبْكِي', transliteration: 'tabkī', gloss: 'you cry' },
+        { label: 'you (fem.)', arabic: 'تَبْكِينَ', transliteration: 'tabkīna', gloss: 'you cry' },
+        { label: 'he', arabic: 'يَبْكِي', transliteration: 'yabkī', gloss: 'he cries' },
+        { label: 'she', arabic: 'تَبْكِي', transliteration: 'tabkī', gloss: 'she cries' },
+        { label: 'we', arabic: 'نَبْكِي', transliteration: 'nabkī', gloss: 'we cry' },
+        { label: 'you (masc. plural)', arabic: 'تَبْكُونَ', transliteration: 'tabkūna', gloss: 'you (m. pl.) cry' },
+        { label: 'you (fem. plural)', arabic: 'تَبْكِينَ', transliteration: 'tabkīna', gloss: 'you (f. pl.) cry' },
+        { label: 'they (masc.)', arabic: 'يَبْكُونَ', transliteration: 'yabkūna', gloss: 'they (m.) cry' },
+        { label: 'they (fem.)', arabic: 'يَبْكِينَ', transliteration: 'yabkīna', gloss: 'they (f.) cry' },
+      ],
+    },
+  },
+  jaraV: {
+    past: {
+      title: 'Past tense (الماضي) of جَرَى (to run, flow) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'جَرَيْتُ', transliteration: 'jaraytu', gloss: 'I ran' },
+        { label: 'you (masc.)', arabic: 'جَرَيْتَ', transliteration: 'jarayta', gloss: 'you ran' },
+        { label: 'you (fem.)', arabic: 'جَرَيْتِ', transliteration: 'jarayti', gloss: 'you ran' },
+        { label: 'he', arabic: 'جَرَى', transliteration: 'jarā', gloss: 'he ran' },
+        { label: 'she', arabic: 'جَرَتْ', transliteration: 'jarat', gloss: 'she ran' },
+        { label: 'we', arabic: 'جَرَيْنَا', transliteration: 'jaraynā', gloss: 'we ran' },
+        { label: 'you (masc. plural)', arabic: 'جَرَيْتُمْ', transliteration: 'jaraytum', gloss: 'you (m. pl.) ran' },
+        { label: 'you (fem. plural)', arabic: 'جَرَيْتُنَّ', transliteration: 'jaraytunna', gloss: 'you (f. pl.) ran' },
+        { label: 'they (masc.)', arabic: 'جَرَوْا', transliteration: 'jaraw', gloss: 'they (m.) ran' },
+        { label: 'they (fem.)', arabic: 'جَرَيْنَ', transliteration: 'jarayna', gloss: 'they (f.) ran' },
+      ],
+    }
+  },
+  yajriV: {
+    present: {
+      title: 'Present tense (المضارع) of يَجْرِي (to run, flow) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَجْرِي', transliteration: 'ajrī', gloss: 'I run' },
+        { label: 'you (masc.)', arabic: 'تَجْرِي', transliteration: 'tajrī', gloss: 'you run' },
+        { label: 'you (fem.)', arabic: 'تَجْرِينَ', transliteration: 'tajrīna', gloss: 'you run' },
+        { label: 'he', arabic: 'يَجْرِي', transliteration: 'yajrī', gloss: 'he runs' },
+        { label: 'she', arabic: 'تَجْرِي', transliteration: 'tajrī', gloss: 'she runs' },
+        { label: 'we', arabic: 'نَجْرِي', transliteration: 'najrī', gloss: 'we run' },
+        { label: 'you (masc. plural)', arabic: 'تَجْرُونَ', transliteration: 'tajrūna', gloss: 'you (m. pl.) run' },
+        { label: 'you (fem. plural)', arabic: 'تَجْرِينَ', transliteration: 'tajrīna', gloss: 'you (f. pl.) run' },
+        { label: 'they (masc.)', arabic: 'يَجْرُونَ', transliteration: 'yajrūna', gloss: 'they (m.) run' },
+        { label: 'they (fem.)', arabic: 'يَجْرِينَ', transliteration: 'yajrīna', gloss: 'they (f.) run' },
+      ],
+    },
+  },
+  rajaHoped: {
+    past: {
+      title: 'Past tense (الماضي) of رَجَا (to hope) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'رَجَوْتُ', transliteration: 'rajawtu', gloss: 'I hoped' },
+        { label: 'you (masc.)', arabic: 'رَجَوْتَ', transliteration: 'rajawta', gloss: 'you hoped' },
+        { label: 'you (fem.)', arabic: 'رَجَوْتِ', transliteration: 'rajawti', gloss: 'you hoped' },
+        { label: 'he', arabic: 'رَجَا', transliteration: 'rajā', gloss: 'he hoped' },
+        { label: 'she', arabic: 'رَجَتْ', transliteration: 'rajat', gloss: 'she hoped' },
+        { label: 'we', arabic: 'رَجَوْنَا', transliteration: 'rajawnā', gloss: 'we hoped' },
+        { label: 'you (masc. plural)', arabic: 'رَجَوْتُمْ', transliteration: 'rajawtum', gloss: 'you (m. pl.) hoped' },
+        { label: 'you (fem. plural)', arabic: 'رَجَوْتُنَّ', transliteration: 'rajawtunna', gloss: 'you (f. pl.) hoped' },
+        { label: 'they (masc.)', arabic: 'رَجَوْا', transliteration: 'rajaw', gloss: 'they (m.) hoped' },
+        { label: 'they (fem.)', arabic: 'رَجَوْنَ', transliteration: 'rajawna', gloss: 'they (f.) hoped' },
+      ],
+    }
+  },
+  yarjuHopes: {
+    present: {
+      title: 'Present tense (المضارع) of يَرْجُو (to hope) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَرْجُو', transliteration: 'arjū', gloss: 'I hope' },
+        { label: 'you (masc.)', arabic: 'تَرْجُو', transliteration: 'tarjū', gloss: 'you hope' },
+        { label: 'you (fem.)', arabic: 'تَرْجِينَ', transliteration: 'tarjīna', gloss: 'you hope — و switches to ي before ينَ' },
+        { label: 'he', arabic: 'يَرْجُو', transliteration: 'yarjū', gloss: 'he hopes' },
+        { label: 'she', arabic: 'تَرْجُو', transliteration: 'tarjū', gloss: 'she hopes' },
+        { label: 'we', arabic: 'نَرْجُو', transliteration: 'narjū', gloss: 'we hope' },
+        { label: 'you (masc. plural)', arabic: 'تَرْجُونَ', transliteration: 'tarjūna', gloss: 'you (m. pl.) hope' },
+        { label: 'you (fem. plural)', arabic: 'تَرْجِينَ', transliteration: 'tarjīna', gloss: 'you (f. pl.) hope' },
+        { label: 'they (masc.)', arabic: 'يَرْجُونَ', transliteration: 'yarjūna', gloss: 'they (m.) hope' },
+        { label: 'they (fem.)', arabic: 'يَرْجِينَ', transliteration: 'yarjīna', gloss: 'they (f.) hope' },
+      ],
+    },
+  },
+  najaSaved: {
+    past: {
+      title: 'Past tense (الماضي) of نَجَا (to be saved) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'نَجَوْتُ', transliteration: 'najawtu', gloss: 'I was saved' },
+        { label: 'you (masc.)', arabic: 'نَجَوْتَ', transliteration: 'najawta', gloss: 'you were saved' },
+        { label: 'you (fem.)', arabic: 'نَجَوْتِ', transliteration: 'najawti', gloss: 'you were saved' },
+        { label: 'he', arabic: 'نَجَا', transliteration: 'najā', gloss: 'he was saved' },
+        { label: 'she', arabic: 'نَجَتْ', transliteration: 'najat', gloss: 'she was saved' },
+        { label: 'we', arabic: 'نَجَوْنَا', transliteration: 'najawnā', gloss: 'we were saved' },
+        { label: 'you (masc. plural)', arabic: 'نَجَوْتُمْ', transliteration: 'najawtum', gloss: 'you (m. pl.) were saved' },
+        { label: 'you (fem. plural)', arabic: 'نَجَوْتُنَّ', transliteration: 'najawtunna', gloss: 'you (f. pl.) were saved' },
+        { label: 'they (masc.)', arabic: 'نَجَوْا', transliteration: 'najaw', gloss: 'they (m.) were saved' },
+        { label: 'they (fem.)', arabic: 'نَجَوْنَ', transliteration: 'najawna', gloss: 'they (f.) were saved' },
+      ],
+    }
+  },
+  yanjuSaved: {
+    present: {
+      title: 'Present tense (المضارع) of يَنْجُو (to be saved) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَنْجُو', transliteration: 'anjū', gloss: 'I am saved' },
+        { label: 'you (masc.)', arabic: 'تَنْجُو', transliteration: 'tanjū', gloss: 'you are saved' },
+        { label: 'you (fem.)', arabic: 'تَنْجِينَ', transliteration: 'tanjīna', gloss: 'you are saved' },
+        { label: 'he', arabic: 'يَنْجُو', transliteration: 'yanjū', gloss: 'he is saved' },
+        { label: 'she', arabic: 'تَنْجُو', transliteration: 'tanjū', gloss: 'she is saved' },
+        { label: 'we', arabic: 'نَنْجُو', transliteration: 'nanjū', gloss: 'we are saved' },
+        { label: 'you (masc. plural)', arabic: 'تَنْجُونَ', transliteration: 'tanjūna', gloss: 'you (m. pl.) are saved' },
+        { label: 'you (fem. plural)', arabic: 'تَنْجِينَ', transliteration: 'tanjīna', gloss: 'you (f. pl.) are saved' },
+        { label: 'they (masc.)', arabic: 'يَنْجُونَ', transliteration: 'yanjūna', gloss: 'they (m.) are saved' },
+        { label: 'they (fem.)', arabic: 'يَنْجِينَ', transliteration: 'yanjīna', gloss: 'they (f.) are saved' },
+      ],
+    },
+  },
+  qadaV: {
+    past: {
+      title: 'Past tense (الماضي) of قَضَى (to decree, fulfil) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'قَضَيْتُ', transliteration: 'qaḍaytu', gloss: 'I decreed' },
+        { label: 'you (masc.)', arabic: 'قَضَيْتَ', transliteration: 'qaḍayta', gloss: 'you decreed' },
+        { label: 'you (fem.)', arabic: 'قَضَيْتِ', transliteration: 'qaḍayti', gloss: 'you decreed' },
+        { label: 'he', arabic: 'قَضَى', transliteration: 'qaḍā', gloss: 'he decreed' },
+        { label: 'she', arabic: 'قَضَتْ', transliteration: 'qaḍat', gloss: 'she decreed' },
+        { label: 'we', arabic: 'قَضَيْنَا', transliteration: 'qaḍaynā', gloss: 'we decreed' },
+        { label: 'you (masc. plural)', arabic: 'قَضَيْتُمْ', transliteration: 'qaḍaytum', gloss: 'you (m. pl.) decreed' },
+        { label: 'you (fem. plural)', arabic: 'قَضَيْتُنَّ', transliteration: 'qaḍaytunna', gloss: 'you (f. pl.) decreed' },
+        { label: 'they (masc.)', arabic: 'قَضَوْا', transliteration: 'qaḍaw', gloss: 'they (m.) decreed' },
+        { label: 'they (fem.)', arabic: 'قَضَيْنَ', transliteration: 'qaḍayna', gloss: 'they (f.) decreed' },
+      ],
+    }
+  },
+  yaqdiV: {
+    present: {
+      title: 'Present tense (المضارع) of يَقْضِي (to decree, fulfil) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَقْضِي', transliteration: 'aqḍī', gloss: 'I decree' },
+        { label: 'you (masc.)', arabic: 'تَقْضِي', transliteration: 'taqḍī', gloss: 'you decree' },
+        { label: 'you (fem.)', arabic: 'تَقْضِينَ', transliteration: 'taqḍīna', gloss: 'you decree' },
+        { label: 'he', arabic: 'يَقْضِي', transliteration: 'yaqḍī', gloss: 'he decrees' },
+        { label: 'she', arabic: 'تَقْضِي', transliteration: 'taqḍī', gloss: 'she decrees' },
+        { label: 'we', arabic: 'نَقْضِي', transliteration: 'naqḍī', gloss: 'we decree' },
+        { label: 'you (masc. plural)', arabic: 'تَقْضُونَ', transliteration: 'taqḍūna', gloss: 'you (m. pl.) decree' },
+        { label: 'you (fem. plural)', arabic: 'تَقْضِينَ', transliteration: 'taqḍīna', gloss: 'you (f. pl.) decree' },
+        { label: 'they (masc.)', arabic: 'يَقْضُونَ', transliteration: 'yaqḍūna', gloss: 'they (m.) decree' },
+        { label: 'they (fem.)', arabic: 'يَقْضِينَ', transliteration: 'yaqḍīna', gloss: 'they (f.) decree' },
+      ],
+    },
+  },
+  saqaV: {
+    past: {
+      title: 'Past tense (الماضي) of سَقَى (to give water to) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'سَقَيْتُ', transliteration: 'saqaytu', gloss: 'I gave water to' },
+        { label: 'you (masc.)', arabic: 'سَقَيْتَ', transliteration: 'saqayta', gloss: 'you gave water to' },
+        { label: 'you (fem.)', arabic: 'سَقَيْتِ', transliteration: 'saqayti', gloss: 'you gave water to' },
+        { label: 'he', arabic: 'سَقَى', transliteration: 'saqā', gloss: 'he gave water to' },
+        { label: 'she', arabic: 'سَقَتْ', transliteration: 'saqat', gloss: 'she gave water to' },
+        { label: 'we', arabic: 'سَقَيْنَا', transliteration: 'saqaynā', gloss: 'we gave water to' },
+        { label: 'you (masc. plural)', arabic: 'سَقَيْتُمْ', transliteration: 'saqaytum', gloss: 'you (m. pl.) gave water to' },
+        { label: 'you (fem. plural)', arabic: 'سَقَيْتُنَّ', transliteration: 'saqaytunna', gloss: 'you (f. pl.) gave water to' },
+        { label: 'they (masc.)', arabic: 'سَقَوْا', transliteration: 'saqaw', gloss: 'they (m.) gave water to' },
+        { label: 'they (fem.)', arabic: 'سَقَيْنَ', transliteration: 'saqayna', gloss: 'they (f.) gave water to' },
+      ],
+    }
+  },
+  yasqiV: {
+    present: {
+      title: 'Present tense (المضارع) of يَسْقِي (to give water to) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَسْقِي', transliteration: 'asqī', gloss: 'I give water to' },
+        { label: 'you (masc.)', arabic: 'تَسْقِي', transliteration: 'tasqī', gloss: 'you give water to' },
+        { label: 'you (fem.)', arabic: 'تَسْقِينَ', transliteration: 'tasqīna', gloss: 'you give water to' },
+        { label: 'he', arabic: 'يَسْقِي', transliteration: 'yasqī', gloss: 'he gives water to' },
+        { label: 'she', arabic: 'تَسْقِي', transliteration: 'tasqī', gloss: 'she gives water to' },
+        { label: 'we', arabic: 'نَسْقِي', transliteration: 'nasqī', gloss: 'we give water to' },
+        { label: 'you (masc. plural)', arabic: 'تَسْقُونَ', transliteration: 'tasqūna', gloss: 'you (m. pl.) give water to' },
+        { label: 'you (fem. plural)', arabic: 'تَسْقِينَ', transliteration: 'tasqīna', gloss: 'you (f. pl.) give water to' },
+        { label: 'they (masc.)', arabic: 'يَسْقُونَ', transliteration: 'yasqūna', gloss: 'they (m.) give water to' },
+        { label: 'they (fem.)', arabic: 'يَسْقِينَ', transliteration: 'yasqīna', gloss: 'they (f.) give water to' },
+      ],
+    },
+  },
+  nadaV: {
+    past: {
+      title: 'Past tense (الماضي) of نَادَى (to call out) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'نَادَيْتُ', transliteration: 'nādaytu', gloss: 'I called out' },
+        { label: 'you (masc.)', arabic: 'نَادَيْتَ', transliteration: 'nādayta', gloss: 'you called out' },
+        { label: 'you (fem.)', arabic: 'نَادَيْتِ', transliteration: 'nādayti', gloss: 'you called out' },
+        { label: 'he', arabic: 'نَادَى', transliteration: 'nādā', gloss: 'he called out' },
+        { label: 'she', arabic: 'نَادَتْ', transliteration: 'nādat', gloss: 'she called out' },
+        { label: 'we', arabic: 'نَادَيْنَا', transliteration: 'nādaynā', gloss: 'we called out' },
+        { label: 'you (masc. plural)', arabic: 'نَادَيْتُمْ', transliteration: 'nādaytum', gloss: 'you (m. pl.) called out' },
+        { label: 'you (fem. plural)', arabic: 'نَادَيْتُنَّ', transliteration: 'nādaytunna', gloss: 'you (f. pl.) called out' },
+        { label: 'they (masc.)', arabic: 'نَادَوْا', transliteration: 'nādaw', gloss: 'they (m.) called out' },
+        { label: 'they (fem.)', arabic: 'نَادَيْنَ', transliteration: 'nādayna', gloss: 'they (f.) called out' },
+      ],
+    }
+  },
+  yunadiV: {
+    present: {
+      title: 'Present tense (المضارع) of يُنَادِي (to call out) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أُنَادِي', transliteration: 'unādī', gloss: 'I call out' },
+        { label: 'you (masc.)', arabic: 'تُنَادِي', transliteration: 'tunādī', gloss: 'you call out' },
+        { label: 'you (fem.)', arabic: 'تُنَادِينَ', transliteration: 'tunādīna', gloss: 'you call out' },
+        { label: 'he', arabic: 'يُنَادِي', transliteration: 'yunādī', gloss: 'he calls out' },
+        { label: 'she', arabic: 'تُنَادِي', transliteration: 'tunādī', gloss: 'she calls out' },
+        { label: 'we', arabic: 'نُنَادِي', transliteration: 'nunādī', gloss: 'we call out' },
+        { label: 'you (masc. plural)', arabic: 'تُنَادُونَ', transliteration: 'tunādūna', gloss: 'you (m. pl.) call out' },
+        { label: 'you (fem. plural)', arabic: 'تُنَادِينَ', transliteration: 'tunādīna', gloss: 'you (f. pl.) call out' },
+        { label: 'they (masc.)', arabic: 'يُنَادُونَ', transliteration: 'yunādūna', gloss: 'they (m.) call out' },
+        { label: 'they (fem.)', arabic: 'يُنَادِينَ', transliteration: 'yunādīna', gloss: 'they (f.) call out' },
+      ],
+    },
+  },
+  banaV: {
+    past: {
+      title: 'Past tense (الماضي) of بَنَى (to build) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'بَنَيْتُ', transliteration: 'banaytu', gloss: 'I built' },
+        { label: 'you (masc.)', arabic: 'بَنَيْتَ', transliteration: 'banayta', gloss: 'you built' },
+        { label: 'you (fem.)', arabic: 'بَنَيْتِ', transliteration: 'banayti', gloss: 'you built' },
+        { label: 'he', arabic: 'بَنَى', transliteration: 'banā', gloss: 'he built' },
+        { label: 'she', arabic: 'بَنَتْ', transliteration: 'banat', gloss: 'she built' },
+        { label: 'we', arabic: 'بَنَيْنَا', transliteration: 'banaynā', gloss: 'we built' },
+        { label: 'you (masc. plural)', arabic: 'بَنَيْتُمْ', transliteration: 'banaytum', gloss: 'you (m. pl.) built' },
+        { label: 'you (fem. plural)', arabic: 'بَنَيْتُنَّ', transliteration: 'banaytunna', gloss: 'you (f. pl.) built' },
+        { label: 'they (masc.)', arabic: 'بَنَوْا', transliteration: 'banaw', gloss: 'they (m.) built' },
+        { label: 'they (fem.)', arabic: 'بَنَيْنَ', transliteration: 'banayna', gloss: 'they (f.) built' },
+      ],
+    }
+  },
+  yabniV: {
+    present: {
+      title: 'Present tense (المضارع) of يَبْنِي (to build) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَبْنِي', transliteration: 'abnī', gloss: 'I build' },
+        { label: 'you (masc.)', arabic: 'تَبْنِي', transliteration: 'tabnī', gloss: 'you build' },
+        { label: 'you (fem.)', arabic: 'تَبْنِينَ', transliteration: 'tabnīna', gloss: 'you build' },
+        { label: 'he', arabic: 'يَبْنِي', transliteration: 'yabnī', gloss: 'he builds' },
+        { label: 'she', arabic: 'تَبْنِي', transliteration: 'tabnī', gloss: 'she builds' },
+        { label: 'we', arabic: 'نَبْنِي', transliteration: 'nabnī', gloss: 'we build' },
+        { label: 'you (masc. plural)', arabic: 'تَبْنُونَ', transliteration: 'tabnūna', gloss: 'you (m. pl.) build' },
+        { label: 'you (fem. plural)', arabic: 'تَبْنِينَ', transliteration: 'tabnīna', gloss: 'you (f. pl.) build' },
+        { label: 'they (masc.)', arabic: 'يَبْنُونَ', transliteration: 'yabnūna', gloss: 'they (m.) build' },
+        { label: 'they (fem.)', arabic: 'يَبْنِينَ', transliteration: 'yabnīna', gloss: 'they (f.) build' },
+      ],
+    },
+  },
+  ittaqaV: {
+    past: {
+      title: 'Past tense (الماضي) of اِتَّقَى (to fear God, be pious) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'اِتَّقَيْتُ', transliteration: 'ittaqaytu', gloss: 'I feared God' },
+        { label: 'you (masc.)', arabic: 'اِتَّقَيْتَ', transliteration: 'ittaqayta', gloss: 'you feared God' },
+        { label: 'you (fem.)', arabic: 'اِتَّقَيْتِ', transliteration: 'ittaqayti', gloss: 'you feared God' },
+        { label: 'he', arabic: 'اِتَّقَى', transliteration: 'ittaqā', gloss: 'he feared God' },
+        { label: 'she', arabic: 'اِتَّقَتْ', transliteration: 'ittaqat', gloss: 'she feared God' },
+        { label: 'we', arabic: 'اِتَّقَيْنَا', transliteration: 'ittaqaynā', gloss: 'we feared God' },
+        { label: 'you (masc. plural)', arabic: 'اِتَّقَيْتُمْ', transliteration: 'ittaqaytum', gloss: 'you (m. pl.) feared God' },
+        { label: 'you (fem. plural)', arabic: 'اِتَّقَيْتُنَّ', transliteration: 'ittaqaytunna', gloss: 'you (f. pl.) feared God' },
+        { label: 'they (masc.)', arabic: 'اِتَّقَوْا', transliteration: 'ittaqaw', gloss: 'they (m.) feared God' },
+        { label: 'they (fem.)', arabic: 'اِتَّقَيْنَ', transliteration: 'ittaqayna', gloss: 'they (f.) feared God' },
+      ],
+    }
+  },
+  yattaqiV: {
+    present: {
+      title: 'Present tense (المضارع) of يَتَّقِي (to fear God, be pious) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَتَّقِي', transliteration: 'attaqī', gloss: 'I fear God' },
+        { label: 'you (masc.)', arabic: 'تَتَّقِي', transliteration: 'tattaqī', gloss: 'you fear God' },
+        { label: 'you (fem.)', arabic: 'تَتَّقِينَ', transliteration: 'tattaqīna', gloss: 'you fear God' },
+        { label: 'he', arabic: 'يَتَّقِي', transliteration: 'yattaqī', gloss: 'he fears God' },
+        { label: 'she', arabic: 'تَتَّقِي', transliteration: 'tattaqī', gloss: 'she fears God' },
+        { label: 'we', arabic: 'نَتَّقِي', transliteration: 'nattaqī', gloss: 'we fear God' },
+        { label: 'you (masc. plural)', arabic: 'تَتَّقُونَ', transliteration: 'tattaqūna', gloss: 'you (m. pl.) fear God' },
+        { label: 'you (fem. plural)', arabic: 'تَتَّقِينَ', transliteration: 'tattaqīna', gloss: 'you (f. pl.) fear God' },
+        { label: 'they (masc.)', arabic: 'يَتَّقُونَ', transliteration: 'yattaqūna', gloss: 'they (m.) fear God' },
+        { label: 'they (fem.)', arabic: 'يَتَّقِينَ', transliteration: 'yattaqīna', gloss: 'they (f.) fear God' },
+      ],
+    },
+  },
+  aataGave: {
+    past: {
+      title: 'Past tense (الماضي) of أَعْطَى (to give) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'أَعْطَيْتُ', transliteration: "a'ṭaytu", gloss: 'I gave' },
+        { label: 'you (masc.)', arabic: 'أَعْطَيْتَ', transliteration: "a'ṭayta", gloss: 'you gave' },
+        { label: 'you (fem.)', arabic: 'أَعْطَيْتِ', transliteration: "a'ṭayti", gloss: 'you gave' },
+        { label: 'he', arabic: 'أَعْطَى', transliteration: "a'ṭā", gloss: 'he gave' },
+        { label: 'she', arabic: 'أَعْطَتْ', transliteration: "a'ṭat", gloss: 'she gave' },
+        { label: 'we', arabic: 'أَعْطَيْنَا', transliteration: "a'ṭaynā", gloss: 'we gave' },
+        { label: 'you (masc. plural)', arabic: 'أَعْطَيْتُمْ', transliteration: "a'ṭaytum", gloss: 'you (m. pl.) gave' },
+        { label: 'you (fem. plural)', arabic: 'أَعْطَيْتُنَّ', transliteration: "a'ṭaytunna", gloss: 'you (f. pl.) gave' },
+        { label: 'they (masc.)', arabic: 'أَعْطَوْا', transliteration: "a'ṭaw", gloss: 'they (m.) gave' },
+        { label: 'they (fem.)', arabic: 'أَعْطَيْنَ', transliteration: "a'ṭayna", gloss: 'they (f.) gave' },
+      ],
+    }
+  },
+  yutiiGives: {
+    present: {
+      title: 'Present tense (المضارع) of يُعْطِي (to give) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أُعْطِي', transliteration: "u'ṭī", gloss: 'I give' },
+        { label: 'you (masc.)', arabic: 'تُعْطِي', transliteration: "tu'ṭī", gloss: 'you give' },
+        { label: 'you (fem.)', arabic: 'تُعْطِينَ', transliteration: "tu'ṭīna", gloss: 'you give' },
+        { label: 'he', arabic: 'يُعْطِي', transliteration: "yu'ṭī", gloss: 'he gives' },
+        { label: 'she', arabic: 'تُعْطِي', transliteration: "tu'ṭī", gloss: 'she gives' },
+        { label: 'we', arabic: 'نُعْطِي', transliteration: "nu'ṭī", gloss: 'we give' },
+        { label: 'you (masc. plural)', arabic: 'تُعْطُونَ', transliteration: "tu'ṭūna", gloss: 'you (m. pl.) give' },
+        { label: 'you (fem. plural)', arabic: 'تُعْطِينَ', transliteration: "tu'ṭīna", gloss: 'you (f. pl.) give' },
+        { label: 'they (masc.)', arabic: 'يُعْطُونَ', transliteration: "yu'ṭūna", gloss: 'they (m.) give' },
+        { label: 'they (fem.)', arabic: 'يُعْطِينَ', transliteration: "yu'ṭīna", gloss: 'they (f.) give' },
+      ],
+    },
+  },
+  radiyaV: {
+    past: {
+      title: 'Past tense (الماضي) of رَضِيَ (to be pleased) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'رَضِيتُ', transliteration: 'raḍītu', gloss: 'I was pleased' },
+        { label: 'you (masc.)', arabic: 'رَضِيتَ', transliteration: 'raḍīta', gloss: 'you were pleased' },
+        { label: 'you (fem.)', arabic: 'رَضِيتِ', transliteration: 'raḍīti', gloss: 'you were pleased' },
+        { label: 'he', arabic: 'رَضِيَ', transliteration: 'raḍiya', gloss: 'he was pleased' },
+        { label: 'she', arabic: 'رَضِيَتْ', transliteration: 'raḍiyat', gloss: 'she was pleased — unlike the fatha-class, the ي stays here' },
+        { label: 'we', arabic: 'رَضِينَا', transliteration: 'raḍīnā', gloss: 'we were pleased' },
+        { label: 'you (masc. plural)', arabic: 'رَضِيتُمْ', transliteration: 'raḍītum', gloss: 'you (m. pl.) were pleased' },
+        { label: 'you (fem. plural)', arabic: 'رَضِيتُنَّ', transliteration: 'raḍītunna', gloss: 'you (f. pl.) were pleased' },
+        { label: 'they (masc.)', arabic: 'رَضُوا', transliteration: 'raḍū', gloss: 'they (m.) were pleased — the ي drops before ُوا' },
+        { label: 'they (fem.)', arabic: 'رَضِينَ', transliteration: 'raḍīna', gloss: 'they (f.) were pleased' },
+      ],
+    }
+  },
+  yardaV: {
+    present: {
+      title: 'Present tense (المضارع) of يَرْضَى (to be pleased) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَرْضَى', transliteration: 'arḍā', gloss: 'I am pleased' },
+        { label: 'you (masc.)', arabic: 'تَرْضَى', transliteration: 'tarḍā', gloss: 'you are pleased' },
+        { label: 'you (fem.)', arabic: 'تَرْضَيْنَ', transliteration: 'tarḍayna', gloss: 'you are pleased' },
+        { label: 'he', arabic: 'يَرْضَى', transliteration: 'yarḍā', gloss: 'he is pleased' },
+        { label: 'she', arabic: 'تَرْضَى', transliteration: 'tarḍā', gloss: 'she is pleased' },
+        { label: 'we', arabic: 'نَرْضَى', transliteration: 'narḍā', gloss: 'we are pleased' },
+        { label: 'you (masc. plural)', arabic: 'تَرْضَوْنَ', transliteration: 'tarḍawna', gloss: 'you (m. pl.) are pleased' },
+        { label: 'you (fem. plural)', arabic: 'تَرْضَيْنَ', transliteration: 'tarḍayna', gloss: 'you (f. pl.) are pleased' },
+        { label: 'they (masc.)', arabic: 'يَرْضَوْنَ', transliteration: 'yarḍawna', gloss: 'they (m.) are pleased' },
+        { label: 'they (fem.)', arabic: 'يَرْضَيْنَ', transliteration: 'yarḍayna', gloss: 'they (f.) are pleased' },
+      ],
+    },
+  },
+  laqiyaV: {
+    past: {
+      title: 'Past tense (الماضي) of لَقِيَ (to meet) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'لَقِيتُ', transliteration: 'laqītu', gloss: 'I met' },
+        { label: 'you (masc.)', arabic: 'لَقِيتَ', transliteration: 'laqīta', gloss: 'you met' },
+        { label: 'you (fem.)', arabic: 'لَقِيتِ', transliteration: 'laqīti', gloss: 'you met' },
+        { label: 'he', arabic: 'لَقِيَ', transliteration: 'laqiya', gloss: 'he met' },
+        { label: 'she', arabic: 'لَقِيَتْ', transliteration: 'laqiyat', gloss: 'she met' },
+        { label: 'we', arabic: 'لَقِينَا', transliteration: 'laqīnā', gloss: 'we met' },
+        { label: 'you (masc. plural)', arabic: 'لَقِيتُمْ', transliteration: 'laqītum', gloss: 'you (m. pl.) met' },
+        { label: 'you (fem. plural)', arabic: 'لَقِيتُنَّ', transliteration: 'laqītunna', gloss: 'you (f. pl.) met' },
+        { label: 'they (masc.)', arabic: 'لَقُوا', transliteration: 'laqū', gloss: 'they (m.) met' },
+        { label: 'they (fem.)', arabic: 'لَقِينَ', transliteration: 'laqīna', gloss: 'they (f.) met' },
+      ],
+    }
+  },
+  yalqaV: {
+    present: {
+      title: 'Present tense (المضارع) of يَلْقَى (to meet) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَلْقَى', transliteration: 'alqā', gloss: 'I meet' },
+        { label: 'you (masc.)', arabic: 'تَلْقَى', transliteration: 'talqā', gloss: 'you meet' },
+        { label: 'you (fem.)', arabic: 'تَلْقَيْنَ', transliteration: 'talqayna', gloss: 'you meet' },
+        { label: 'he', arabic: 'يَلْقَى', transliteration: 'yalqā', gloss: 'he meets' },
+        { label: 'she', arabic: 'تَلْقَى', transliteration: 'talqā', gloss: 'she meets' },
+        { label: 'we', arabic: 'نَلْقَى', transliteration: 'nalqā', gloss: 'we meet' },
+        { label: 'you (masc. plural)', arabic: 'تَلْقَوْنَ', transliteration: 'talqawna', gloss: 'you (m. pl.) meet' },
+        { label: 'you (fem. plural)', arabic: 'تَلْقَيْنَ', transliteration: 'talqayna', gloss: 'you (f. pl.) meet' },
+        { label: 'they (masc.)', arabic: 'يَلْقَوْنَ', transliteration: 'yalqawna', gloss: 'they (m.) meet' },
+        { label: 'they (fem.)', arabic: 'يَلْقَيْنَ', transliteration: 'yalqayna', gloss: 'they (f.) meet — coincidentally spelled like أَلْقَى "he threw", an unrelated verb' },
+      ],
+    },
+  },
+
+  // --- geminate verbs (doubled radical, r2 === r3) — the shadda unpacks
+  // before consonant-initial suffixes, so both tenses are hand-authored. ---
+  dallaV: {
+    past: {
+      title: 'Past tense (الماضي) of دَلَّ (to indicate, point) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'دَلَلْتُ', transliteration: 'dalaltu', gloss: 'I indicated' },
+        { label: 'you (masc.)', arabic: 'دَلَلْتَ', transliteration: 'dalalta', gloss: 'you indicated' },
+        { label: 'you (fem.)', arabic: 'دَلَلْتِ', transliteration: 'dalalti', gloss: 'you indicated' },
+        { label: 'he', arabic: 'دَلَّ', transliteration: 'dalla', gloss: 'he indicated' },
+        { label: 'she', arabic: 'دَلَّتْ', transliteration: 'dallat', gloss: 'she indicated' },
+        { label: 'we', arabic: 'دَلَلْنَا', transliteration: 'dalalnā', gloss: 'we indicated' },
+        { label: 'you (masc. plural)', arabic: 'دَلَلْتُمْ', transliteration: 'dalaltum', gloss: 'you (m. pl.) indicated' },
+        { label: 'you (fem. plural)', arabic: 'دَلَلْتُنَّ', transliteration: 'dalaltunna', gloss: 'you (f. pl.) indicated' },
+        { label: 'they (masc.)', arabic: 'دَلُّوا', transliteration: 'dallū', gloss: 'they (m.) indicated' },
+        { label: 'they (fem.)', arabic: 'دَلَلْنَ', transliteration: 'dalalna', gloss: 'they (f.) indicated' },
+      ],
+    }
+  },
+  yadulluV: {
+    present: {
+      title: 'Present tense (المضارع) of يَدُلُّ (to indicate, point) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَدُلُّ', transliteration: 'adullu', gloss: 'I indicate' },
+        { label: 'you (masc.)', arabic: 'تَدُلُّ', transliteration: 'tadullu', gloss: 'you indicate' },
+        { label: 'you (fem.)', arabic: 'تَدُلِّينَ', transliteration: 'tadullīna', gloss: 'you indicate' },
+        { label: 'he', arabic: 'يَدُلُّ', transliteration: 'yadullu', gloss: 'he indicates' },
+        { label: 'she', arabic: 'تَدُلُّ', transliteration: 'tadullu', gloss: 'she indicates' },
+        { label: 'we', arabic: 'نَدُلُّ', transliteration: 'nadullu', gloss: 'we indicate' },
+        { label: 'you (masc. plural)', arabic: 'تَدُلُّونَ', transliteration: 'tadullūna', gloss: 'you (m. pl.) indicate' },
+        { label: 'you (fem. plural)', arabic: 'تَدْلُلْنَ', transliteration: 'tadlulna', gloss: 'you (f. pl.) indicate — the doubled ل unpacks before ـنَ' },
+        { label: 'they (masc.)', arabic: 'يَدُلُّونَ', transliteration: 'yadullūna', gloss: 'they (m.) indicate' },
+        { label: 'they (fem.)', arabic: 'يَدْلُلْنَ', transliteration: 'yadlulna', gloss: 'they (f.) indicate — the doubled ل unpacks before ـنَ' },
+      ],
+    },
+  },
+  zannaV: {
+    past: {
+      title: 'Past tense (الماضي) of ظَنَّ (to think, assume) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'ظَنَنْتُ', transliteration: 'ẓanantu', gloss: 'I thought' },
+        { label: 'you (masc.)', arabic: 'ظَنَنْتَ', transliteration: 'ẓananta', gloss: 'you thought' },
+        { label: 'you (fem.)', arabic: 'ظَنَنْتِ', transliteration: 'ẓananti', gloss: 'you thought' },
+        { label: 'he', arabic: 'ظَنَّ', transliteration: 'ẓanna', gloss: 'he thought' },
+        { label: 'she', arabic: 'ظَنَّتْ', transliteration: 'ẓannat', gloss: 'she thought' },
+        { label: 'we', arabic: 'ظَنَنَّا', transliteration: 'ẓanannā', gloss: 'we thought — the root ن merges with the ن of ـنَا' },
+        { label: 'you (masc. plural)', arabic: 'ظَنَنْتُمْ', transliteration: 'ẓanantum', gloss: 'you (m. pl.) thought' },
+        { label: 'you (fem. plural)', arabic: 'ظَنَنْتُنَّ', transliteration: 'ẓanantunna', gloss: 'you (f. pl.) thought' },
+        { label: 'they (masc.)', arabic: 'ظَنُّوا', transliteration: 'ẓannū', gloss: 'they (m.) thought' },
+        { label: 'they (fem.)', arabic: 'ظَنَنَّ', transliteration: 'ẓananna', gloss: 'they (f.) thought — the root ن merges with the ن of ـنَ' },
+      ],
+    }
+  },
+  yazunnuV: {
+    present: {
+      title: 'Present tense (المضارع) of يَظُنُّ (to think, assume) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَظُنُّ', transliteration: 'aẓunnu', gloss: 'I think' },
+        { label: 'you (masc.)', arabic: 'تَظُنُّ', transliteration: 'taẓunnu', gloss: 'you think' },
+        { label: 'you (fem.)', arabic: 'تَظُنِّينَ', transliteration: 'taẓunnīna', gloss: 'you think' },
+        { label: 'he', arabic: 'يَظُنُّ', transliteration: 'yaẓunnu', gloss: 'he thinks' },
+        { label: 'she', arabic: 'تَظُنُّ', transliteration: 'taẓunnu', gloss: 'she thinks' },
+        { label: 'we', arabic: 'نَظُنُّ', transliteration: 'naẓunnu', gloss: 'we think' },
+        { label: 'you (masc. plural)', arabic: 'تَظُنُّونَ', transliteration: 'taẓunnūna', gloss: 'you (m. pl.) think' },
+        { label: 'you (fem. plural)', arabic: 'تَظْنُنَّ', transliteration: 'taẓnunna', gloss: 'you (f. pl.) think — the root ن merges with the ـنَ suffix' },
+        { label: 'they (masc.)', arabic: 'يَظُنُّونَ', transliteration: 'yaẓunnūna', gloss: 'they (m.) think' },
+        { label: 'they (fem.)', arabic: 'يَظْنُنَّ', transliteration: 'yaẓnunna', gloss: 'they (f.) think — the root ن merges with the ـنَ suffix' },
+      ],
+    },
+  },
+  raddaV: {
+    past: {
+      title: 'Past tense (الماضي) of رَدَّ (to reply, return) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'رَدَدْتُ', transliteration: 'radadtu', gloss: 'I replied' },
+        { label: 'you (masc.)', arabic: 'رَدَدْتَ', transliteration: 'radadta', gloss: 'you replied' },
+        { label: 'you (fem.)', arabic: 'رَدَدْتِ', transliteration: 'radadti', gloss: 'you replied' },
+        { label: 'he', arabic: 'رَدَّ', transliteration: 'radda', gloss: 'he replied' },
+        { label: 'she', arabic: 'رَدَّتْ', transliteration: 'raddat', gloss: 'she replied' },
+        { label: 'we', arabic: 'رَدَدْنَا', transliteration: 'radadnā', gloss: 'we replied' },
+        { label: 'you (masc. plural)', arabic: 'رَدَدْتُمْ', transliteration: 'radadtum', gloss: 'you (m. pl.) replied' },
+        { label: 'you (fem. plural)', arabic: 'رَدَدْتُنَّ', transliteration: 'radadtunna', gloss: 'you (f. pl.) replied' },
+        { label: 'they (masc.)', arabic: 'رَدُّوا', transliteration: 'raddū', gloss: 'they (m.) replied' },
+        { label: 'they (fem.)', arabic: 'رَدَدْنَ', transliteration: 'radadna', gloss: 'they (f.) replied' },
+      ],
+    }
+  },
+  yarudduV: {
+    present: {
+      title: 'Present tense (المضارع) of يَرُدُّ (to reply, return) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَرُدُّ', transliteration: 'aruddu', gloss: 'I reply' },
+        { label: 'you (masc.)', arabic: 'تَرُدُّ', transliteration: 'taruddu', gloss: 'you reply' },
+        { label: 'you (fem.)', arabic: 'تَرُدِّينَ', transliteration: 'taruddīna', gloss: 'you reply' },
+        { label: 'he', arabic: 'يَرُدُّ', transliteration: 'yaruddu', gloss: 'he replies' },
+        { label: 'she', arabic: 'تَرُدُّ', transliteration: 'taruddu', gloss: 'she replies' },
+        { label: 'we', arabic: 'نَرُدُّ', transliteration: 'naruddu', gloss: 'we reply' },
+        { label: 'you (masc. plural)', arabic: 'تَرُدُّونَ', transliteration: 'taruddūna', gloss: 'you (m. pl.) reply' },
+        { label: 'you (fem. plural)', arabic: 'تَرْدُدْنَ', transliteration: 'tardudna', gloss: 'you (f. pl.) reply — the doubled د unpacks before ـنَ' },
+        { label: 'they (masc.)', arabic: 'يَرُدُّونَ', transliteration: 'yaruddūna', gloss: 'they (m.) reply' },
+        { label: 'they (fem.)', arabic: 'يَرْدُدْنَ', transliteration: 'yardudna', gloss: 'they (f.) reply — the doubled د unpacks before ـنَ' },
+      ],
+    },
+  },
+  hajjaV: {
+    past: {
+      title: 'Past tense (الماضي) of حَجَّ (to perform hajj) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'حَجَجْتُ', transliteration: 'ḥajajtu', gloss: 'I performed hajj' },
+        { label: 'you (masc.)', arabic: 'حَجَجْتَ', transliteration: 'ḥajajta', gloss: 'you performed hajj' },
+        { label: 'you (fem.)', arabic: 'حَجَجْتِ', transliteration: 'ḥajajti', gloss: 'you performed hajj' },
+        { label: 'he', arabic: 'حَجَّ', transliteration: 'ḥajja', gloss: 'he performed hajj' },
+        { label: 'she', arabic: 'حَجَّتْ', transliteration: 'ḥajjat', gloss: 'she performed hajj' },
+        { label: 'we', arabic: 'حَجَجْنَا', transliteration: 'ḥajajnā', gloss: 'we performed hajj' },
+        { label: 'you (masc. plural)', arabic: 'حَجَجْتُمْ', transliteration: 'ḥajajtum', gloss: 'you (m. pl.) performed hajj' },
+        { label: 'you (fem. plural)', arabic: 'حَجَجْتُنَّ', transliteration: 'ḥajajtunna', gloss: 'you (f. pl.) performed hajj' },
+        { label: 'they (masc.)', arabic: 'حَجُّوا', transliteration: 'ḥajjū', gloss: 'they (m.) performed hajj' },
+        { label: 'they (fem.)', arabic: 'حَجَجْنَ', transliteration: 'ḥajajna', gloss: 'they (f.) performed hajj' },
+      ],
+    }
+  },
+  yahujjuV: {
+    present: {
+      title: 'Present tense (المضارع) of يَحُجُّ (to perform hajj) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَحُجُّ', transliteration: 'aḥujju', gloss: 'I perform hajj' },
+        { label: 'you (masc.)', arabic: 'تَحُجُّ', transliteration: 'taḥujju', gloss: 'you perform hajj' },
+        { label: 'you (fem.)', arabic: 'تَحُجِّينَ', transliteration: 'taḥujjīna', gloss: 'you perform hajj' },
+        { label: 'he', arabic: 'يَحُجُّ', transliteration: 'yaḥujju', gloss: 'he performs hajj' },
+        { label: 'she', arabic: 'تَحُجُّ', transliteration: 'taḥujju', gloss: 'she performs hajj' },
+        { label: 'we', arabic: 'نَحُجُّ', transliteration: 'naḥujju', gloss: 'we perform hajj' },
+        { label: 'you (masc. plural)', arabic: 'تَحُجُّونَ', transliteration: 'taḥujjūna', gloss: 'you (m. pl.) perform hajj' },
+        { label: 'you (fem. plural)', arabic: 'تَحْجُجْنَ', transliteration: 'taḥjujna', gloss: 'you (f. pl.) perform hajj — the doubled ج unpacks before ـنَ' },
+        { label: 'they (masc.)', arabic: 'يَحُجُّونَ', transliteration: 'yaḥujjūna', gloss: 'they (m.) perform hajj' },
+        { label: 'they (fem.)', arabic: 'يَحْجُجْنَ', transliteration: 'yaḥjujna', gloss: 'they (f.) perform hajj — the doubled ج unpacks before ـنَ' },
+      ],
+    },
+  },
+  ahabbaV: {
+    past: {
+      title: 'Past tense (الماضي) of أَحَبَّ (to love) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'أَحْبَبْتُ', transliteration: 'aḥbabtu', gloss: 'I loved' },
+        { label: 'you (masc.)', arabic: 'أَحْبَبْتَ', transliteration: 'aḥbabta', gloss: 'you loved' },
+        { label: 'you (fem.)', arabic: 'أَحْبَبْتِ', transliteration: 'aḥbabti', gloss: 'you loved' },
+        { label: 'he', arabic: 'أَحَبَّ', transliteration: 'aḥabba', gloss: 'he loved' },
+        { label: 'she', arabic: 'أَحَبَّتْ', transliteration: 'aḥabbat', gloss: 'she loved' },
+        { label: 'we', arabic: 'أَحْبَبْنَا', transliteration: 'aḥbabnā', gloss: 'we loved' },
+        { label: 'you (masc. plural)', arabic: 'أَحْبَبْتُمْ', transliteration: 'aḥbabtum', gloss: 'you (m. pl.) loved' },
+        { label: 'you (fem. plural)', arabic: 'أَحْبَبْتُنَّ', transliteration: 'aḥbabtunna', gloss: 'you (f. pl.) loved' },
+        { label: 'they (masc.)', arabic: 'أَحَبُّوا', transliteration: 'aḥabbū', gloss: 'they (m.) loved' },
+        { label: 'they (fem.)', arabic: 'أَحْبَبْنَ', transliteration: 'aḥbabna', gloss: 'they (f.) loved' },
+      ],
+    }
+  },
+  yuhibbuV: {
+    present: {
+      title: 'Present tense (المضارع) of يُحِبُّ (to love) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أُحِبُّ', transliteration: 'uḥibbu', gloss: 'I love' },
+        { label: 'you (masc.)', arabic: 'تُحِبُّ', transliteration: 'tuḥibbu', gloss: 'you love' },
+        { label: 'you (fem.)', arabic: 'تُحِبِّينَ', transliteration: 'tuḥibbīna', gloss: 'you love' },
+        { label: 'he', arabic: 'يُحِبُّ', transliteration: 'yuḥibbu', gloss: 'he loves' },
+        { label: 'she', arabic: 'تُحِبُّ', transliteration: 'tuḥibbu', gloss: 'she loves' },
+        { label: 'we', arabic: 'نُحِبُّ', transliteration: 'nuḥibbu', gloss: 'we love' },
+        { label: 'you (masc. plural)', arabic: 'تُحِبُّونَ', transliteration: 'tuḥibbūna', gloss: 'you (m. pl.) love' },
+        { label: 'you (fem. plural)', arabic: 'تُحْبِبْنَ', transliteration: 'tuḥbibna', gloss: 'you (f. pl.) love — the doubled ب unpacks before ـنَ' },
+        { label: 'they (masc.)', arabic: 'يُحِبُّونَ', transliteration: 'yuḥibbūna', gloss: 'they (m.) love' },
+        { label: 'they (fem.)', arabic: 'يُحْبِبْنَ', transliteration: 'yuḥbibna', gloss: 'they (f.) love — the doubled ب unpacks before ـنَ' },
+      ],
+    },
+  },
+
+  // --- hamza-final verb — the hamza changes seat depending on what follows ---
+  qaraaV: {
+    past: {
+      title: 'Past tense (الماضي) of قَرَأَ (to read) — every person',
+      kind: 'verb-past',
+      rows: [
+        { label: 'I', arabic: 'قَرَأْتُ', transliteration: "qara'tu", gloss: 'I read' },
+        { label: 'you (masc.)', arabic: 'قَرَأْتَ', transliteration: "qara'ta", gloss: 'you read' },
+        { label: 'you (fem.)', arabic: 'قَرَأْتِ', transliteration: "qara'ti", gloss: 'you read' },
+        { label: 'he', arabic: 'قَرَأَ', transliteration: "qara'a", gloss: 'he read' },
+        { label: 'she', arabic: 'قَرَأَتْ', transliteration: "qara'at", gloss: 'she read' },
+        { label: 'we', arabic: 'قَرَأْنَا', transliteration: "qara'nā", gloss: 'we read' },
+        { label: 'you (masc. plural)', arabic: 'قَرَأْتُمْ', transliteration: "qara'tum", gloss: 'you (m. pl.) read' },
+        { label: 'you (fem. plural)', arabic: 'قَرَأْتُنَّ', transliteration: "qara'tunna", gloss: 'you (f. pl.) read' },
+        { label: 'they (masc.)', arabic: 'قَرَؤُوا', transliteration: "qara'ū", gloss: 'they (m.) read — the hamza takes a وseat before و' },
+        { label: 'they (fem.)', arabic: 'قَرَأْنَ', transliteration: "qara'na", gloss: 'they (f.) read' },
+      ],
+    }
+  },
+  yaqrauV: {
+    present: {
+      title: 'Present tense (المضارع) of يَقْرَأُ (to read) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَقْرَأُ', transliteration: "aqra'u", gloss: 'I read' },
+        { label: 'you (masc.)', arabic: 'تَقْرَأُ', transliteration: "taqra'u", gloss: 'you read' },
+        { label: 'you (fem.)', arabic: 'تَقْرَئِينَ', transliteration: "taqra'īna", gloss: 'you read — the hamza takes a ي seat before ينَ' },
+        { label: 'he', arabic: 'يَقْرَأُ', transliteration: "yaqra'u", gloss: 'he reads' },
+        { label: 'she', arabic: 'تَقْرَأُ', transliteration: "taqra'u", gloss: 'she reads' },
+        { label: 'we', arabic: 'نَقْرَأُ', transliteration: "naqra'u", gloss: 'we read' },
+        { label: 'you (masc. plural)', arabic: 'تَقْرَؤُونَ', transliteration: "taqra'ūna", gloss: 'you (m. pl.) read — the hamza takes a و seat before ونَ' },
+        { label: 'you (fem. plural)', arabic: 'تَقْرَأْنَ', transliteration: "taqra'na", gloss: 'you (f. pl.) read' },
+        { label: 'they (masc.)', arabic: 'يَقْرَؤُونَ', transliteration: "yaqra'ūna", gloss: 'they (m.) read' },
+        { label: 'they (fem.)', arabic: 'يَقْرَأْنَ', transliteration: "yaqra'na", gloss: 'they (f.) read' },
       ],
     },
   },

@@ -1,13 +1,14 @@
 import type { NarrationSegment, Story } from '../types'
 import { getStoryById } from '../data/stories'
 import { getWordById } from '../data/words'
-import { changeWordPool, trueFalsePool, decksForLesson } from '../data/original/adapter'
+import { changeWordPool, trueFalsePool, decksForLesson, challenge2Sentences } from '../data/original/adapter'
 
-// Generators for the three lesson drills (mirroring the reference platform):
+// Generators for the four lesson drills (mirroring the reference platform):
 //  - change-one-word: one word in a real story sentence is swapped for a
 //    grammatically wrong one; the student types the correct original word.
 //  - true-false: the sentence is either intact or corrupted the same way.
 //  - vocab-translate: English prompt → student writes the Arabic → reveal.
+//  - sentence-translate: English sentence → student writes the Arabic → reveal.
 // Corruptions are limited to swaps we can make with CONFIDENCE that the
 // result is wrong Arabic: preposition swaps, demonstrative gender flips,
 // verb-prefix person flips, and كَانَ/كَانَتْ gender flips.
@@ -38,6 +39,12 @@ export interface VocabTranslateQuestion {
   english: string
   arabic: string
   transliteration: string
+}
+
+export interface SentenceTranslateQuestion {
+  kind: 'sentence-translate'
+  english: string
+  arabic: string
 }
 
 const PREPOSITION_SWAPS: Record<string, string[]> = {
@@ -217,6 +224,20 @@ export function makeVocabTranslate(storyId: string): VocabTranslateQuestion | nu
     arabic: word.arabic,
     transliteration: word.transliteration,
   }
+}
+
+export function makeSentenceTranslate(storyId: string): SentenceTranslateQuestion | null {
+  const story = getStoryById(storyId)
+  if (!story) return null
+  const pool = challenge2Sentences(story.order)
+  if (pool.length > 0) {
+    const q = pick(pool)
+    return { kind: 'sentence-translate', english: q.en, arabic: q.ar }
+  }
+  const narr = narrations(story)
+  if (narr.length === 0) return null
+  const seg = pick(narr)
+  return { kind: 'sentence-translate', english: seg.english, arabic: seg.arabic }
 }
 
 /** Diacritic/hamza-tolerant comparison for typed Arabic answers. */

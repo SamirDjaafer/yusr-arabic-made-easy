@@ -18,7 +18,7 @@ const X_RIGHT = 600
 const stopY = (i: number) => FIRST_Y + i * STOP_H
 const stopX = (i: number) => (i % 2 === 0 ? X_LEFT : X_RIGHT)
 
-const DRILL_TYPES = ['change-one-word', 'true-false', 'vocab-translate']
+const DRILL_TYPES = ['change-one-word', 'true-false', 'vocab-translate', 'sentence-translate']
 const CHALLENGE_IDS = ['own-sentences', 'translate', 'comprehension']
 
 interface TorchStop {
