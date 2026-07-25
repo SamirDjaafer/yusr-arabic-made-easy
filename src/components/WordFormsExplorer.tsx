@@ -37,9 +37,20 @@ const VIEW_LABELS: Record<ExplorerView, string> = {
 }
 const VIEWS = Object.keys(VIEW_LABELS) as ExplorerView[]
 
+/** diacritic-insensitive, case-insensitive substring match (typed Arabic, transliteration, or English all work) */
+function normalizeSearch(s: string): string {
+  return s
+    .replace(/[ً-ْٰـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .toLowerCase()
+    .trim()
+}
+
 export function WordFormsExplorer() {
   const [view, setView] = useState<ExplorerView>('verbs-both')
   const [allLessons, setAllLessons] = useState(false)
+  const [search, setSearch] = useState('')
   const currentStoryId = useProgressStore((s) => s.currentStoryId)
 
   const verbPairs = useMemo(() => {
@@ -56,6 +67,21 @@ export function WordFormsExplorer() {
     return all.filter((w) => isWordInScope(w, currentStoryId))
   }, [view, allLessons, currentStoryId])
 
+  const searchNeedle = normalizeSearch(search)
+  const filteredPairs = useMemo(() => {
+    if (!searchNeedle) return verbPairs
+    return verbPairs.filter((p) => normalizeSearch(p.arabicLabel).includes(searchNeedle) || normalizeSearch(p.meaning).includes(searchNeedle))
+  }, [verbPairs, searchNeedle])
+  const filteredWords = useMemo(() => {
+    if (!searchNeedle) return eligibleWords
+    return eligibleWords.filter(
+      (w) =>
+        normalizeSearch(w.arabic).includes(searchNeedle) ||
+        normalizeSearch(w.transliteration).includes(searchNeedle) ||
+        normalizeSearch(w.meaning).includes(searchNeedle)
+    )
+  }, [eligibleWords, searchNeedle])
+
   const [selectionId, setSelectionId] = useState<string>(() => verbPairs[0]?.id ?? '')
 
   const changeView = (next: ExplorerView) => {
@@ -63,8 +89,8 @@ export function WordFormsExplorer() {
     setSelectionId('')
   }
 
-  const selectedPair = view === 'verbs-both' ? (verbPairs.find((p) => p.id === selectionId) ?? verbPairs[0]) : null
-  const selectedWord = view !== 'verbs-both' ? (eligibleWords.find((w) => w.id === selectionId) ?? eligibleWords[0]) : null
+  const selectedPair = view === 'verbs-both' ? (filteredPairs.find((p) => p.id === selectionId) ?? filteredPairs[0]) : null
+  const selectedWord = view !== 'verbs-both' ? (filteredWords.find((w) => w.id === selectionId) ?? filteredWords[0]) : null
   const table = view !== 'verbs-both' && selectedWord ? getTable(view, selectedWord) : null
 
   return (
@@ -88,13 +114,21 @@ export function WordFormsExplorer() {
           ))}
         </select>
 
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search a word (Arabic, transliteration, or English)…"
+          className="min-w-52 flex-1 rounded-full border border-teal-700/20 bg-white/70 px-4 py-2 text-sm outline-none focus:border-teal-500 dark:border-teal-100/20 dark:bg-ink-900/50"
+        />
+
         {view === 'verbs-both' ? (
           <select
             value={selectedPair?.id ?? ''}
             onChange={(e) => setSelectionId(e.target.value)}
             className="max-w-full rounded-full border border-teal-700/20 bg-white/70 px-4 py-2 text-sm outline-none dark:border-teal-100/20 dark:bg-ink-900/50"
           >
-            {verbPairs.map((p) => (
+            {filteredPairs.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.arabicLabel} — {p.meaning}
               </option>
@@ -107,7 +141,7 @@ export function WordFormsExplorer() {
             onChange={(e) => setSelectionId(e.target.value)}
             className="max-w-full rounded-full border border-teal-700/20 bg-white/70 px-4 py-2 text-sm outline-none dark:border-teal-100/20 dark:bg-ink-900/50"
           >
-            {eligibleWords.map((w) => (
+            {filteredWords.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.arabic} — {w.meaning}
               </option>
@@ -120,6 +154,13 @@ export function WordFormsExplorer() {
           all lessons
         </label>
       </div>
+
+      {view === 'verbs-both' && search && filteredPairs.length === 0 && (
+        <p className="mt-3 text-sm text-ink-500 dark:text-parchment-200/50">No verbs match "{search}".</p>
+      )}
+      {view !== 'verbs-both' && search && filteredWords.length === 0 && (
+        <p className="mt-3 text-sm text-ink-500 dark:text-parchment-200/50">No words match "{search}".</p>
+      )}
 
       {view === 'verbs-both' && selectedPair && (
         <div className="mt-4 rounded-xl border border-teal-700/15 bg-parchment-50/60 p-3 dark:border-teal-100/15 dark:bg-ink-950/30">
