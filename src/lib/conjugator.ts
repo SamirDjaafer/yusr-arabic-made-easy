@@ -112,6 +112,10 @@ export function conjugatePresent(word: Word): Paradigm | null {
   const coreBare = core.replace(/[ً-ْ]/g, '')
   if (WEAK_LETTERS.includes(coreBare[coreBare.length - 1])) return null
   if (['أ', 'ء', 'ؤ'].includes(coreBare[0])) return null // hamza-initial cores (يُؤْمِنُ → أُومِنُ) need special handling
+  // a hamza ANYWHERE in a hollow core (e.g. يَجِيءُ, يَشَاءُ) changes seat
+  // depending on what follows it — the shortening logic below can't derive
+  // that safely, so these need a hand-authored table too.
+  if (['أ', 'ء', 'ؤ', 'ئ'].some((h) => coreBare.includes(h))) return null
   const weakPositions = [...coreBare].reduce<number[]>((acc, ch, i) => (WEAK_LETTERS.includes(ch) ? [...acc, i] : acc), [])
   const isHollow = weakPositions.length === 1 && weakPositions[0] > 0 && weakPositions[0] < coreBare.length - 1
   if (!isHollow && weakPositions.length > 0) return null
@@ -533,6 +537,24 @@ const HAND_AUTHORED: Record<string, { past?: Paradigm; present?: Paradigm; imper
       ],
     },
   },
+  yajiu: {
+    present: {
+      title: 'Present tense (المضارع) of يَجِيءُ (to come) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَجِيءُ', transliteration: "ajī'u", gloss: 'I come' },
+        { label: 'you (masc.)', arabic: 'تَجِيءُ', transliteration: "tajī'u", gloss: 'you come' },
+        { label: 'you (fem.)', arabic: 'تَجِيئِينَ', transliteration: "tajī'īna", gloss: 'you come — the hamza sits on ي after a long ī' },
+        { label: 'he', arabic: 'يَجِيءُ', transliteration: "yajī'u", gloss: 'he comes' },
+        { label: 'she', arabic: 'تَجِيءُ', transliteration: "tajī'u", gloss: 'she comes' },
+        { label: 'we', arabic: 'نَجِيءُ', transliteration: "najī'u", gloss: 'we come' },
+        { label: 'you (masc. plural)', arabic: 'تَجِيئُونَ', transliteration: "tajī'ūna", gloss: 'you (m. pl.) come — still a ي seat, the preceding ī wins over the following و' },
+        { label: 'you (fem. plural)', arabic: 'تَجِئْنَ', transliteration: "taji'na", gloss: 'you (f. pl.) come — the ي shortens, but the hamza keeps its ي seat' },
+        { label: 'they (masc.)', arabic: 'يَجِيئُونَ', transliteration: "yajī'ūna", gloss: 'they (m.) come' },
+        { label: 'they (fem.)', arabic: 'يَجِئْنَ', transliteration: "yaji'na", gloss: 'they (f.) come' },
+      ],
+    },
+  },
   yuridu: {
     present: {
       title: 'Present tense (المضارع) of يُرِيدُ (to want) — every person',
@@ -566,6 +588,24 @@ const HAND_AUTHORED: Record<string, { past?: Paradigm; present?: Paradigm; imper
         { label: 'you (fem. plural)', arabic: 'شِئْتُنَّ', transliteration: "shi'tunna", gloss: 'you (f. pl.) willed' },
         { label: 'they (masc.)', arabic: 'شَاؤُوا', transliteration: "shā'ū", gloss: 'they (m.) willed' },
         { label: 'they (fem.)', arabic: 'شِئْنَ', transliteration: "shi'na", gloss: 'they (f.) willed' },
+      ],
+    },
+  },
+  yashau: {
+    present: {
+      title: 'Present tense (المضارع) of يَشَاءُ (to will) — every person',
+      kind: 'verb-present',
+      rows: [
+        { label: 'I', arabic: 'أَشَاءُ', transliteration: "ashā'u", gloss: 'I will (wish)' },
+        { label: 'you (masc.)', arabic: 'تَشَاءُ', transliteration: "tashā'u", gloss: 'you will (wish)' },
+        { label: 'you (fem.)', arabic: 'تَشَاءِينَ', transliteration: "tashā'īna", gloss: 'you will (wish) — a hamza after alif is always written bare, never seated' },
+        { label: 'he', arabic: 'يَشَاءُ', transliteration: "yashā'u", gloss: 'he wills (wishes)' },
+        { label: 'she', arabic: 'تَشَاءُ', transliteration: "tashā'u", gloss: 'she wills (wishes)' },
+        { label: 'we', arabic: 'نَشَاءُ', transliteration: "nashā'u", gloss: 'we will (wish)' },
+        { label: 'you (masc. plural)', arabic: 'تَشَاءُونَ', transliteration: "tashā'ūna", gloss: 'you (m. pl.) will (wish) — as in Quran 76:30, still bare after alif' },
+        { label: 'you (fem. plural)', arabic: 'تَشَأْنَ', transliteration: "tasha'na", gloss: 'you (f. pl.) will (wish) — the alif shortens, so the hamza takes an alif seat instead' },
+        { label: 'they (masc.)', arabic: 'يَشَاءُونَ', transliteration: "yashā'ūna", gloss: 'they (m.) will (wish)' },
+        { label: 'they (fem.)', arabic: 'يَشَأْنَ', transliteration: "yasha'na", gloss: 'they (f.) will (wish)' },
       ],
     },
   },
