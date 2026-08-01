@@ -40,6 +40,7 @@ export function originalStoriesFrom(fromOrder: number): Story[] {
       arabic: lines[i] ?? s.words.map((w) => w.ar).join(' '),
       transliteration: '',
       english: s.en,
+      wordGlosses: s.words.map((w) => ({ arabic: w.ar, english: w.en })),
     }))
     return {
       id: `story-${String(ls.lesson).padStart(2, '0')}`,

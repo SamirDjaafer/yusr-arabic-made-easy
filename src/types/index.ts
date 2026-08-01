@@ -142,6 +142,9 @@ export interface NarrationSegment {
   english: string
   /** word ids appearing in this line, for tap-to-inspect WordChips */
   wordIds?: string[]
+  /** exact word-by-word (arabic, english) pairs in reading order, when the
+   * source data provides them — used for tap-a-word-to-reveal in reading mode */
+  wordGlosses?: { arabic: string; english: string }[]
 }
 
 export interface GrammarTipSegment {
