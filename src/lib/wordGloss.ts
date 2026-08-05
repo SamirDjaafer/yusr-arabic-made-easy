@@ -19,6 +19,10 @@ for (const w of words) {
 // single-letter attached prefixes (conjunctions/prepositions), tried longest-first
 const PREFIXES = ['بال', 'وال', 'فال', 'كال', 'لل', 'ال', 'و', 'ف', 'ب', 'ل', 'ك']
 
+// attached possessive-pronoun suffixes, longest-first (kept to 2+ letters —
+// stripping a single trailing letter risks matching an unrelated word)
+const SUFFIXES = ['هما', 'كما', 'هُنَّ', 'هم', 'هن', 'كم', 'كن', 'نا', 'ها', 'ني']
+
 function lookupBare(bare: string, preferredIds?: Set<string>): string | undefined {
   if (preferredIds) {
     for (const id of preferredIds) {
@@ -29,18 +33,44 @@ function lookupBare(bare: string, preferredIds?: Set<string>): string | undefine
   return BARE_INDEX.get(bare)
 }
 
-/** best-effort match: try the bare token, then progressively strip attached prefixes */
+/** try a bare form directly, then with a dangling accusative-indefinite alif (تنوين النصب) removed */
+function lookupWithCaseAlif(bare: string, preferredIds?: Set<string>): string | undefined {
+  const direct = lookupBare(bare, preferredIds)
+  if (direct) return direct
+  if (bare.endsWith('ا') && bare.length > 1) return lookupBare(bare.slice(0, -1), preferredIds)
+  return undefined
+}
+
+/** best-effort match: try the bare token, then progressively strip attached prefixes/suffixes */
 function matchToken(rawToken: string, preferredIds?: Set<string>): string | undefined {
   const bare = stripDiacritics(stripPunctuation(rawToken))
   if (!bare) return undefined
-  const direct = lookupBare(bare, preferredIds)
+
+  const direct = lookupWithCaseAlif(bare, preferredIds)
   if (direct) return direct
+
   for (const prefix of PREFIXES) {
     if (bare.startsWith(prefix) && bare.length > prefix.length) {
-      const stripped = lookupBare(bare.slice(prefix.length), preferredIds)
+      const stripped = lookupWithCaseAlif(bare.slice(prefix.length), preferredIds)
       if (stripped) return stripped
     }
   }
+
+  for (const suffix of SUFFIXES) {
+    if (bare.endsWith(suffix) && bare.length > suffix.length) {
+      const stem = bare.slice(0, -suffix.length)
+      const stripped = lookupWithCaseAlif(stem, preferredIds)
+      if (stripped) return stripped
+      // suffix could be stacked on a prefixed word too (e.g. وَقَرْيَتِهِ)
+      for (const prefix of PREFIXES) {
+        if (stem.startsWith(prefix) && stem.length > prefix.length) {
+          const both = lookupWithCaseAlif(stem.slice(prefix.length), preferredIds)
+          if (both) return both
+        }
+      }
+    }
+  }
+
   return undefined
 }
 
